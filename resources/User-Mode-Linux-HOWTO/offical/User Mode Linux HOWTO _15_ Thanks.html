@@ -1,0 +1,249 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 3.2 Final//EN"> <html style><!--
+ Page saved with SingleFile 
+ url: http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-15.html 
+ saved date: Thu Jun 17 2021 15:31:14 GMT+0800 (China Standard Time)
+--><meta charset=utf-8>
+<meta name=GENERATOR content="LinuxDoc-Tools 0.9.21">
+<title>User Mode Linux HOWTO : Thanks</title>
+<link href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-14.html rel=previous>
+<link href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc15 rel=contents>
+<style>.youdao_tans_modal{position:fixed;background-color:#fff;max-width:400px;max-height:400px;overflow-y:auto;padding:16px;border-radius:2px;border:1px solid #35a1d4;font-size:12px;line-height:1.6;color:#434343;box-shadow:0 3px 6px -4px rgba(0,0,0,.12),0 6px 16px 0 rgba(0,0,0,.08),0 9px 28px 8px rgba(0,0,0,.05);z-index:9999999999;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,PingFang SC,Hiragino Sans GB,Microsoft YaHei,Helvetica Neue,Helvetica,Arial,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol}h2{font-size:16px;margin-top:16px}.youdao_tans_modal a[href^='#'],a:not([href]),a[href='']{color:#434343}</style><link type=image/x-icon rel="shortcut icon" href="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="><link rel=canonical href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-15.html></head>
+<body>
+Next
+<a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-14.html>Previous</a>
+<a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc15>Contents</a>
+<hr>
+<h2><a name=thanks></a> <a name=s15>15.</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc15>Thanks</a></h2>
+<p> 
+A number of people have helped this project in various ways, and this page 
+gives recognition where recognition is due.</p>
+<p> 
+If you're listed here and you would prefer a real link on your name,
+or no link at all, instead of the despammed email address pseudo-link,
+let me know.</p>
+<p> 
+If you're not listed here and you think maybe you should be, please let
+me know that as well. I try to get everyone, but sometimes my bookkeeping
+lapses and I forget about contributions.</p>
+<h2><a name=ss15.1>15.1</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc15.1>Code and Documentation</a>
+</h2>
+<p>
+<a href=http://user-mode-linux.sourceforge.net/old/rusty%20at%20linuxcare.com.au>Rusty Russell</a> - 
+<ul>
+<li>wrote the 
+<a href=http://user-mode-linux.sourceforge.net/UserModeLinux-HOWTO.html>HOWTO</a> </li>
+<li> prodded me into making this project official and putting it on
+SourceForge</li>
+<li>came up with the way cool 
+<a href=http://user-mode-linux.sourceforge.net/uml-small.png>UML logo</a> </li>
+<li>redid the config process</li>
+</ul>
+<p></p>
+<p> 
+<a href=http://user-mode-linux.sourceforge.net/old/reiter%20at%20netspace.net.au>Peter Moulder</a> -
+Fixed my config and build processes, and added some useful code to the
+block driver</p>
+<p> 
+<a href=http://user-mode-linux.sourceforge.net/old/wstearns%20at%20pobox.com>Bill Stearns</a> - 
+<ul>
+<li>HOWTO updates
+</li>
+<li>lots of bug reports
+</li>
+<li>lots of testing
+</li>
+<li>dedicated a box (uml.ists.dartmouth.edu) to support UML development
+</li>
+<li>wrote the mkrootfs script, which allows bootable filesystems of RPM-based
+distributions to be cranked out
+</li>
+<li>cranked out a large number of filesystems with said script
+</li>
+</ul>
+<p></p>
+<p> 
+<a href=http://user-mode-linux.sourceforge.net/old/jleu%20at%20mindspring.com>Jim Leu</a> - Wrote the virtual 
+ethernet driver and associated usermode tools</p>
+<p> 
+<a href=http://lars.nocrew.org/>Lars Brinkhoff</a> - Contributed
+the ptrace proxy from his own 
+<a href=http://a386.nocrew.org/>project</a> 
+to allow easier kernel debugging</p>
+<p> 
+<a href=http://user-mode-linux.sourceforge.net/old/andrea%20at%20suse.de>Andrea Arcangeli</a> - Redid
+some of the early boot code so that it would work on machines with
+Large File Support</p>
+<p> 
+<a href=http://www.chiark.greenend.org.uk/~cemerson/> Chris Emerson</a> - Did the first UML port to Linux/ppc</p>
+<p> 
+<a href=http://user-mode-linux.sourceforge.net/old/laforge%20at%20gnumonks.org>Harald Welte</a> - 
+Wrote the multicast transport for the network driver</p>
+<p> 
+Jorgen Cederlof - Added special file support to hostfs</p>
+<p> 
+<a href=http://user-mode-linux.sourceforge.net/old/glonnon%20at%20ridgerun%20dot%20com>Greg Lonnon </a> - Changed the ubd driver to allow it to layer a COW file on a
+shared read-only filesystem and wrote the iomem emulation support</p>
+<p> 
+<a href=http://hem.passagen.se/hno/> Henrik Nordstrom</a> - Provided a variety of patches, fixes, and
+clues</p>
+<p> 
+Lennert Buytenhek - Contributed various patches, a rewrite of the 
+network driver, the first implementation of the mconsole driver, and
+did the bulk of the work needed to get SMP working again.</p>
+<p> 
+Yon Uriarte - Fixed the TUN/TAP network backend while I slept.</p>
+<p> 
+Adam Heath - Made a bunch of nice cleanups to the initialization code,
+plus various other small patches.</p>
+<p> 
+Matt Zimmerman - Matt volunteered to be the UML Debian maintainer
+and is doing a real nice job of it. He also noticed and fixed a
+number of actually and potentially exploitable security holes in
+uml_net. Plus the occasional patch. I like patches.</p>
+<p> 
+James McMechan - James seems to have taken over maintenance of the ubd
+driver and is doing a nice job of it.</p>
+<p> 
+Chandan Kudige - wrote the umlgdb script which automates the reloading
+of module symbols.</p>
+<p> 
+Steve Schmidtke - wrote the UML slirp transport and hostaudio drivers, 
+enabling UML processes to access audio devices on the host. He also 
+submitted patches for the slip transport and lots of other things.</p>
+<p> 
+<a href=http://davidcoulson.net/>David Coulson</a> - 
+<ul>
+<li>Set up the 
+<a href=http://usermodelinux.org/>usermodelinux.org</a> site, 
+which is a great way of keeping the UML user community on top of UML 
+goings-on.
+</li>
+<li>Site documentation and updates
+</li>
+<li>Nifty little UML management daemon 
+<a href=http://uml.openconsultancy.com/umld/>UMLd</a> 
+</li>
+<li>Lots of testing and bug reports
+</li>
+</ul>
+ <p></p>
+<h2><a name=ss15.2>15.2</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc15.2>Flushing out bugs</a>
+</h2>
+<p>
+<ul>
+<li>Yuri Pudgorodsky</li>
+<li>Gerald Britton</li>
+<li>Ian Wehrman</li>
+<li>Gord Lamb</li>
+<li>Eugene Koontz</li>
+<li>John H. Hartman</li>
+<li>Anders Karlsson</li>
+<li>Daniel Phillips</li>
+<li>John Fremlin</li>
+<li>Rainer Burgstaller</li>
+<li>James Stevenson</li>
+<li>Matt Clay</li>
+<li>Cliff Jefferies</li>
+<li>Geoff Hoff</li>
+<li>Lennert Buytenhek</li>
+<li>Al Viro</li>
+<li>Frank Klingenhoefer</li>
+<li>Livio Baldini Soares</li>
+<li>Jon Burgess</li>
+<li>Petru Paler</li>
+<li>Paul</li>
+<li>Chris Reahard</li>
+<li>Sverker Nilsson</li>
+<li>Gong Su</li>
+<li>johan verrept</li>
+<li>Bjorn Eriksson</li>
+<li>Lorenzo Allegrucci</li>
+<li>Muli Ben-Yehuda</li>
+<li>David Mansfield</li>
+<li>Howard Goff</li>
+<li>Mike Anderson</li>
+<li>John Byrne</li>
+<li>Sapan J. Batia</li>
+<li>Iris Huang</li>
+<li>Jan Hudec</li>
+<li>Voluspa</li>
+</ul>
+<p></p>
+<h2><a name=ss15.3>15.3</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc15.3>Buglets and clean-ups</a>
+</h2>
+<p>
+<ul>
+<li>Dave Zarzycki</li>
+<li>Adam Lazur</li>
+<li>Boria Feigin</li>
+<li>Brian J. Murrell</li>
+<li>JS</li>
+<li>Roman Zippel</li>
+<li>Wil Cooley</li>
+<li>Ayelet Shemesh</li>
+<li>Will Dyson</li>
+<li>Sverker Nilsson</li>
+<li>dvorak</li>
+<li>v.naga srinivas</li>
+<li>Shlomi Fish</li>
+<li>Roger Binns</li>
+<li>johan verrept</li>
+<li>MrChuoi</li>
+<li>Peter Cleve</li>
+<li>Vincent Guffens</li>
+<li>Nathan Scott</li>
+<li>Patrick Caulfield</li>
+<li>jbearce</li>
+<li>Catalin Marinas</li>
+<li>Shane Spencer</li>
+<li>Zou Min</li>
+<li>Ryan Boder</li>
+<li>Lorenzo Colitti</li>
+<li>Gwendal Grignou</li>
+<li>Andre' Breiler</li>
+<li>Tsutomu Yasuda</li>
+</ul>
+<p></p>
+<h2><a name=ss15.4>15.4</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc15.4>Case Studies</a>
+</h2>
+<p>
+<ul>
+<li>Jon Wright</li>
+<li>William McEwan</li>
+<li>Michael Richardson</li>
+</ul>
+<p></p>
+<h2><a name=ss15.5>15.5</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc15.5>Other contributions</a>
+</h2>
+<p> 
+<a href=http://user-mode-linux.sourceforge.net/old/Bill.Carr%20at%20compaq.com>Bill Carr</a> made the Red Hat
+mkrootfs script work with RH 6.2.</p>
+<p> 
+<a href=http://user-mode-linux.sourceforge.net/old/mikejen%20at%20hevanet.com>Michael Jennings</a> sent in
+some material which is now gracing the top of the 
+<a href=http://user-mode-linux.sourceforge.net/index.html>index page</a> of this site.</p>
+<p> 
+<a href=http://www.sgi.com/>SGI</a> (and more specifically 
+<a href=http://user-mode-linux.sourceforge.net/old/ralf%20at%20uni-koblenz.de>Ralf Baechle</a> ) gave me an account on
+<a href=http://www.oss.sgi.com/> oss.sgi.com</a> . The bandwidth
+there made it possible to produce most of the filesystems available on
+the project
+download page.</p>
+<p> 
+<a href=http://user-mode-linux.sourceforge.net/old/Laurent.Bonnaud%20at%20inpg.fr>Laurent Bonnaud</a> took the old grotty
+Debian filesystem that I've been distributing and updated it to 2.2.
+It is now available by itself here.</p>
+<p> Rik van Riel gave me some ftp space on ftp.nl.linux.org so I can
+make releases even when Sourceforge is broken.</p>
+<p> Rodrigo de Castro looked at my broken pte code and told me what
+was wrong with it, letting me fix a long-standing (several weeks) and
+serious set of bugs.</p>
+<p> Chris Reahard built a specialized root filesystem for running a
+DNS server jailed inside UML. It's available from the 
+<a href=http://user-mode-linux.sourceforge.net/dl-sf.html>download</a> page in the
+Jail Filesysems section.</p>
+<hr>
+Next
+<a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-14.html>Previous</a>
+<a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc15>Contents</a>
+<div class=youdao_tans_modal style=display:none></div>

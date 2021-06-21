@@ -1,0 +1,270 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 3.2 Final//EN"> <html style><!--
+ Page saved with SingleFile 
+ url: http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-2.html 
+ saved date: Thu Jun 17 2021 15:24:41 GMT+0800 (China Standard Time)
+--><meta charset=utf-8>
+<meta name=GENERATOR content="LinuxDoc-Tools 0.9.21">
+<title>User Mode Linux HOWTO : Compiling the kernel and modules</title>
+<link href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-3.html rel=next>
+<link href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-1.html rel=previous>
+<link href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc2 rel=contents>
+<style>h2{font-size:16px;margin-top:16px}.youdao_tans_modal a[href^='#'],a:not([href]),a[href='']{color:#434343}</style><link type=image/x-icon rel="shortcut icon" href="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="><style>.sf-hidden{display:none!important}</style><link rel=canonical href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-2.html></head>
+<body>
+<a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-3.html>Next</a>
+<a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-1.html>Previous</a>
+<a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc2>Contents</a>
+<hr>
+<h2><a name=compile></a> <a name=s2>2.</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc2>Compiling the kernel and modules</a></h2>
+<p> </p>
+<h2><a name=ss2.1>2.1</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc2.1>Compiling the kernel</a>
+</h2>
+<p>Compiling the user mode kernel is just like compiling any other
+kernel. Let's go through the steps, using 2.4.0-prerelease (current
+as of this writing) as an example:</p>
+<p>
+<ol>
+<li> Download the latest UML patch from
+<a href=http://user-mode-linux.sourceforge.net/dl-sf.html>the download page</a> 
+In this example, the file is uml-patch-2.4.0-prerelease.bz2.
+</li>
+<li> Download the matching kernel from your favourite kernel mirror,
+such as:
+http://ftp.ca.kernel.org/linux/kernel/
+<a href=http://ftp.ca.kernel.org/linux/kernel/> http://ftp.ca.kernel.org/linux/kernel/ </a> .
+</li>
+<li> Make a directory and unpack the kernel into it.
+<blockquote><code>
+<pre>host% 
+mkdir ~/uml
+</pre>
+</code></blockquote>
+<blockquote><code>
+<pre>host% 
+cd ~/uml
+</pre>
+</code></blockquote>
+<blockquote><code>
+<pre>host% 
+tar -xjvf linux-2.4.0-prerelease.tar.bz2
+</pre>
+</code></blockquote>
+</li>
+<li> Apply the patch using
+<blockquote><code>
+<pre>host% 
+cd ~/uml/linux
+</pre>
+</code></blockquote>
+<blockquote><code>
+<pre>host% 
+bzcat uml-patch-2.4.0-prerelease.bz2 | patch -p1
+</pre>
+</code></blockquote>
+</li>
+<li> Run your favorite config; `make xconfig ARCH=um' is the most
+convenient. `make config ARCH=um' and 'make menuconfig ARCH=um' will
+work as well. The defaults will give you a useful kernel. If you
+want to change something, go ahead, it probably won't hurt anything.
+<p> 
+Note: If the host is configured with a 2G/2G address space split
+rather than the usual 3G/1G split, then the packaged UML binaries will
+not run. They will immediately segfault. See 
+<a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-4.html#2G-2G>UML on 2G/2G hosts</a> for the scoop on
+running UML on your system.</p>
+</li>
+<li> Finish with `make linux ARCH=um': the result is a file called `linux'
+in the top directory of your source tree.
+You may notice that the final binary is pretty large (many 10's of
+megabytes for a debuggable UML). This is almost entirely symbol
+information. The actual binary is comparable in size to a native
+kernel. You can run that huge binary, and only the actual code and
+data will be loaded into memory, so the symbols only consume disk
+space unless you are running UML under gdb. You can strip UML:
+<blockquote><code>
+<pre>host% strip linux
+</pre>
+</code></blockquote>
+to see the true size of the UML kernel.</li>
+</ol>
+<p></p>
+<p>Make sure that you don't build this
+kernel in /usr/src/linux. On some distributions, /usr/include/asm
+is a link into this pool. The user-mode build changes the other end
+of that link, and things that include &lt;asm/anything.h&gt; stop compiling.</p>
+<p> The sources are also available from cvs. You can 
+<a href=http://www.user-mode-linux.org/cvs>browse</a> the CVS pool
+or access it anonymously via
+<blockquote><code>
+<pre> cvs -d:pserver:anonymous@www.user-mode-linux.org:/cvsroot/user-mode-linux
+cvs command
+</pre>
+</code></blockquote>
+<p></p>
+<p> If you get the CVS sources, you will have to check them out into an
+empty directory. You will then have to copy each file into the corresponding
+directory in the appropriate kernel pool.</p>
+<p> If you don't have the latest kernel pool, you can get the corresponding
+user-mode sources with 
+<blockquote><code>
+<pre>host% cvs co -r v_2_3_x linux
+</pre>
+</code></blockquote>
+where 'x' is the version in your pool. Note that you will not get the bug
+fixes and enhancements that have gone into subsequent releases.<p></p>
+<p> 
+If you build your own kernel, and want to boot it from one of the
+filesystems distributed from this site, then, in nearly all cases,
+devfs must be compiled into the kernel and mounted at boot time. The
+exception is the tomsrtbt filesystem. For this,
+devfs must either not be in the kernel at all, or "devfs=nomount" must
+be on the kernel command line. Any disagreement between the kernel
+and the filesystem being booted about whether devfs is being used will
+result in the boot getting no further than single-user mode.</p>
+<p> 
+If you don't want to use devfs, you can remove the need for it from a
+filesystem by copying /dev from someplace, making a bunch of
+/dev/ubd devices:
+<blockquote><code>
+<pre>UML# 
+for i in 0 1 2 3 4 5 6 7; do mknod ubd$i b 98 $[ $i * 16 ]; done
+</pre>
+</code></blockquote>
+and changing /etc/fstab and /etc/inittab to refer to the non-devfs devices.<p></p>
+<h2><a name=ss2.2>2.2</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc2.2>Compiling and installing kernel modules</a>
+</h2>
+<p>UML modules are built in the same way as the native kernel (with the
+exception of the 'ARCH=um' that you always need for UML):
+<blockquote><code>
+<pre>host% make modules ARCH=um
+</pre>
+</code></blockquote>
+Any modules that you want to load into this kernel need to
+be built in the user-mode pool. Modules from the native kernel won't
+work. If you notice that the modules you get are much larger than
+they are on the host, see the note above about the size of the final
+UML binary.<p></p>
+<p>You can install them by using ftp or something to copy them into the
+virtual machine and dropping them into /lib/modules/`uname -r`.</p>
+<p>You can also get the kernel build process to install them as
+follows:
+<ol>
+<li>with the kernel not booted, mount the root filesystem in the top level
+of the kernel pool:
+<blockquote><code>
+<pre>host% mount root_fs mnt -o loop
+</pre>
+</code></blockquote>
+</li>
+<li>run 
+<blockquote><code>
+<pre>host% 
+make modules_install INSTALL_MOD_PATH=`pwd`/mnt ARCH=um
+</pre>
+</code></blockquote>
+</li>
+<li>unmount the filesystem
+<blockquote><code>
+<pre>host% umount mnt
+</pre>
+</code></blockquote>
+</li>
+<li>boot the kernel on it
+</li>
+</ol>
+<p></p>
+<p>If you can't mount the root filesystem on the host for some reason
+(like it's a COW file), then an alternate approach is to mount the
+UML kernel tree from the host into the UML with 
+<a href=http://user-mode-linux.sourceforge.net/hostfs.html>hostfs</a> and run the modules_install inside
+UML:
+<ol>
+<li>With UML booted, mount the host kernel tree inside UML at the same
+location as on the host:
+<blockquote><code>
+<pre>UML# mount none -t hostfs path to UML pool -o
+path to UML pool
+</pre>
+</code></blockquote>
+</li>
+<li>Run make modules_install:
+<blockquote><code>
+<pre>UML# cd path to UML pool ; make modules_install
+</pre>
+</code></blockquote>
+</li>
+</ol>
+The depmod at the end may complain about unresolved symbols because
+there is an incorrect or missing System.map installed in the UML
+filesystem. This appears to be harmless. insmod or modprobe should
+work fine at this point.<p></p>
+<p> 
+When the system is booted, you can use insmod as usual to get the modules
+into the kernel. A number of things have been loaded into UML as
+modules, especially filesystems and network protocols and filters, so
+most symbols which need to be exported probably already are. However,
+if you do find symbols that need exporting, let 
+<a href=http://user-mode-linux.sourceforge.net/contacts.html>us</a> know, and they'll be "taken care of".</p>
+<p> 
+If you try building an external module against a UML tree, you will
+find that it doesn't compile because of missing includes. There are
+less obvious problems with the CFLAGS that the module Makefile or
+script provides which would make it not run even if it did build. To
+get around this, you need to provide the same CFLAGS that the UML
+kernel build uses.</p>
+<p> 
+A reasonably slick way of getting the UML CFLAGS is
+<blockquote><code>
+<pre> 
+cd uml-tree ; make script 'SCRIPT=@echo $(CFLAGS)' ARCH=um
+</pre>
+</code></blockquote>
+If the module build process has something that looks like
+<blockquote><code>
+<pre> $(CC) $(CFLAGS) file
+</pre>
+</code></blockquote>
+then you can define CFLAGS in a script like this
+<blockquote><code>
+<pre> 
+CFLAGS=`cd uml-tree ; make script 'SCRIPT=@echo $(CFLAGS)' ARCH=um`
+</pre>
+</code></blockquote>
+and like this in a Makefile
+<blockquote><code>
+<pre> 
+CFLAGS=$(shell cd uml-tree ; make script 'SCRIPT=@echo
+$$(CFLAGS)' ARCH=um)
+</pre>
+</code></blockquote>
+<p></p>
+<h2><a name=ss2.3>2.3</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc2.3>Compiling and installing uml_utilities</a>
+</h2>
+<p>Many features of the UML kernel require a user-space helper program, 
+so a uml_utilities package is distributed separately from the kernel 
+patch which provides these helpers. Included within this is:
+<ul>
+<li>port-helper - Used by consoles which connect to xterms or ports
+</li>
+<li>tunctl - Configuration tool to create and delete tap devices
+</li>
+<li>uml_net - Setuid binary for automatic tap device configuration
+</li>
+<li>uml_switch - User-space virtual switch required for daemon transport
+</li>
+</ul>
+The uml_utilities tree is compiled with:
+<blockquote><code>
+<pre>host#  
+make &amp;&amp; make install
+</pre>
+</code></blockquote>
+Note that UML kernel patches may require a specific version of the 
+uml_utilities distribution. If you don't keep up with the mailing lists, 
+ensure that you have the latest release of uml_utilities if you are 
+experiencing problems with your UML kernel, particularly when dealing 
+with consoles or command-line switches to the helper programs<p></p>
+<hr>
+<a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-3.html>Next</a>
+<a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-1.html>Previous</a>
+<a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc2>Contents</a>
+<div class="youdao_tans_modal sf-hidden"></div>

@@ -1,0 +1,785 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 3.2 Final//EN"> <html><!--
+ Page saved with SingleFile 
+ url: http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-6.html 
+ saved date: Thu Jun 17 2021 15:26:50 GMT+0800 (China Standard Time)
+--><meta charset=utf-8>
+<meta name=GENERATOR content="LinuxDoc-Tools 0.9.21">
+<title>User Mode Linux HOWTO : Setting up the network</title>
+<link href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-7.html rel=next>
+<link href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-5.html rel=previous>
+<link href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc6 rel=contents>
+<style>.youdao_tans_modal{position:fixed;background-color:#fff;max-width:400px;max-height:400px;overflow-y:auto;padding:16px;border-radius:2px;border:1px solid #35a1d4;font-size:12px;line-height:1.6;color:#434343;box-shadow:0 3px 6px -4px rgba(0,0,0,.12),0 6px 16px 0 rgba(0,0,0,.08),0 9px 28px 8px rgba(0,0,0,.05);z-index:9999999999;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,PingFang SC,Hiragino Sans GB,Microsoft YaHei,Helvetica Neue,Helvetica,Arial,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol}h2{font-size:16px;margin-top:16px}.youdao_tans_modal a[href^='#'],a:not([href]),a[href='']{color:#434343}</style><link type=image/x-icon rel="shortcut icon" href="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="><link rel=canonical href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-6.html></head>
+<body>
+<a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-7.html>Next</a>
+<a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-5.html>Previous</a>
+<a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc6>Contents</a>
+<hr>
+<h2><a name=networking></a> <a name=s6>6.</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc6>Setting up the network</a></h2>
+<p> </p>
+<p>This page describes how to set up the various transports and to
+provide a UML instance with network access to the host, other machines
+on the local net, and the rest of the net.</p>
+<p> 
+As of 2.4.5, UML networking has been completely redone to make it much 
+easier to set up, fix bugs, and add new features.</p>
+<p> 
+There is a new helper, uml_net, which does the host setup that
+requires root privileges.</p>
+<p> 
+There are currently five transport types available for a UML virtual
+machine to exchange packets with other hosts:
+<ul>
+<li>ethertap
+</li>
+<li>TUN/TAP
+</li>
+<li>Multicast
+</li>
+<li>a switch daemon
+</li>
+<li>slip
+</li>
+<li>slirp
+</li>
+<li>pcap
+</li>
+</ul>
+The TUN/TAP, ethertap, slip, and slirp transports allow a UML instance to
+exchange packets with the host. They may be directed to the host or
+the host may just act as a router to provide access to other physical
+or virtual machines.<p></p>
+<p> 
+The pcap transport is a synthetic read-only interface, using the libpcap
+binary to collect packets from interfaces on the host and filter them.
+This is useful for building preconfigured traffic monitors or sniffers.</p>
+<p> 
+The daemon and multicast transports provide a completely virtual
+network to other virtual machines. This network is completely
+disconnected from the physical network unless one of the virtual
+machines on it is acting as a gateway.</p>
+<p> 
+With so many host transports, which one should you use? Here's when
+you should use each one:
+<ul>
+<li>ethertap - if you want access to the host networking and it is running
+2.2
+</li>
+<li>TUN/TAP - if you want access to the host networking and it is running
+2.4. Also, the TUN/TAP transport is able to use a preconfigured
+device, allowing it to avoid using the setuid uml_net helper, which
+is a security advantage.
+</li>
+<li>Multicast - if you want a purely virtual network and you don't want to
+set up anything but the UML
+</li>
+<li>a switch daemon - if you want a purely virtual network and you don't
+mind running the daemon in order to get somewhat better performance
+</li>
+<li>slip - there is no particular reason to run the slip backend unless
+ethertap and TUN/TAP are just not available for some reason
+</li>
+<li>slirp - if you don't have root access on the host to setup networking, 
+or if you don't want to allocate an IP to your UML
+</li>
+<li>pcap - not much use for actual network connectivity, but great for 
+monitoring traffic on the host
+</li>
+</ul>
+Ethertap is available on 2.4 and works fine. TUN/TAP is preferred to
+it because it has better performance and ethertap is officially
+considered obsolete in 2.4. Also, the root helper only needs to run
+occasionally for TUN/TAP, rather than handling every packet, as it
+does with ethertap. This is a slight security advantage since it
+provides fewer opportunities for a nasty UML user to somehow exploit
+the helper's root privileges.<p></p>
+<h2><a name=ss6.1>6.1</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc6.1>General setup</a>
+</h2>
+<p>First, you must have the virtual network enabled in your UML. If are
+running a prebuilt kernel from this site, everything is already enabled.
+If you build the kernel yourself, under the "Network device support" menu,
+enable "Network device support", and then the three transports.</p>
+<p> 
+The next step is to provide a network device to the virtual machine.
+This is done by describing it on the kernel command line.</p>
+<p>The general format is 
+<blockquote><code>
+<pre>eth &lt;n&gt; = &lt;transport&gt; , &lt;transport args&gt; 
+</pre>
+</code></blockquote>
+For example, a virtual ethernet device may be attached to a host ethertap
+device as follows:
+<blockquote><code>
+<pre>eth0=ethertap,tap0,fe:fd:0:0:0:1,192.168.0.254
+</pre>
+</code></blockquote>
+This sets up eth0 inside the virtual machine to attach itself to the
+host /dev/tap0, assigns it an ethernet address, and assigns the host
+tap0 interface an IP address. <p></p>
+<p> 
+Note that the IP address you assign to the host end of the tap device
+must be different than the IP you assign to the eth device inside
+UML. If you are short on IPs and don't want to comsume two per
+UML, then you can reuse the host's eth IP address for the host ends of
+the tap devices. Internally, the UMLs must still get unique IPs for
+their eth devices. You can also give the UMLs non-routable IPs
+(192.168.x.x or 10.x.x.x) and have the host masquerade them. This
+will let outgoing connections work, but incoming connections won't
+without more work, such as port forwarding from the host.</p>
+<p> 
+Also note that when you configure the host side of an interface, it is only
+acting as a gateway. It will respond to pings sent to it locally, but
+is not useful to do that since it's a host interface. You are not
+talking to the UML when you ping that interface and get a response. </p>
+<p> 
+You can also add devices to a UML and remove them at runtime. See 
+the 
+<a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-10.html#mconsole>The Management Console</a> page for details.</p>
+<p> 
+The sections below describe this in more detail.</p>
+<p> 
+Once you've decided how you're going to set up the devices, you boot
+UML, log in, configure the UML side of the devices, and set up routes
+to the outside world. At that point, you will be able to talk to any
+other machines, physical or virtual, on the net.</p>
+<p> 
+If ifconfig inside UML fails and the network refuses to come up, run
+'dmesg' to see what ended up in the kernel log. That will usually
+tell you what went wrong.</p>
+<h2><a name=ss6.2>6.2</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc6.2>Userspace daemons</a>
+</h2>
+<p>You will likely need the setuid helper, or the switch daemon, or
+both. They are both installed with the RPM and deb, so if you've installed
+either, you can skip the rest of this section.</p>
+<p> 
+If not, then you need to check them out of CVS,
+build them, and install them. The helper is uml_net, in CVS
+/tools/uml_net, and the daemon is uml_switch, in CVS
+/tools/uml_router. They are both built with a plain 'make'. Both
+need to be installed in a directory that's in your path - /usr/bin is
+recommend. On top of that, uml_net needs to be setuid root.</p>
+<h2><a name=ss6.3>6.3</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc6.3>Specifying ethernet addresses</a>
+</h2>
+<p>Below, you will see that the TUN/TAP, ethertap, and daemon interfaces
+allow you to specify hardware addresses for the virtual ethernet
+devices. This is generally not necessary. If you don't have a
+specific reason to do it, you probably shouldn't. If one is not
+specified on the command line, the driver will assign one based on the
+device IP address. It will provide the address fe:fd:nn:nn:nn:nn
+where nn.nn.nn.nn is the device IP address. This is nearly always
+sufficient to guarantee a unique hardware address for the device. A
+couple of exceptions are:
+<ul>
+<li>Another set of virtual ethernet devices are on the same network and
+they are assigned hardware addresses using a different scheme which
+may conflict with the UML IP address-based scheme
+</li>
+<li>You aren't going to use the device for IP networking, so you don't
+assign the device an IP address
+</li>
+</ul>
+If you let the driver provide the hardware address, you should make sure
+that the device IP address is known before the interface is brought
+up. So, inside UML, this will guarantee that:
+<blockquote><code>
+<pre>UML# 
+ifconfig eth0 192.168.0.250 up
+</pre>
+</code></blockquote>
+If you decide to assign the hardware address yourself, make sure that
+the first byte of the address is even. Addresses with an odd first byte
+are broadcast addresses, which you don't want assigned to a device.<p></p>
+<h2><a name=ss6.4>6.4</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc6.4>UML interface setup</a>
+</h2>
+<p>Once the network devices have been described on the command line, you
+should boot UML and log in.</p>
+<p> 
+The first thing to do is bring the interface up:
+<blockquote><code>
+<pre>UML# ifconfig ethn ip-address up
+</pre>
+</code></blockquote>
+You should be able to ping the host at this point.<p></p>
+<p> 
+To reach the rest of the world, you should set a default route to the
+host:
+<blockquote><code>
+<pre>UML# route add default gw host ip
+</pre>
+</code></blockquote>
+Again, with host ip of 192.168.0.4:
+<blockquote><code>
+<pre>UML# route add default gw 192.168.0.4
+</pre>
+</code></blockquote>
+This page used to recommend setting a network route to your local
+net. This is wrong, because it will cause UML to try to figure out
+hardware addresses of the local machines by arping on the interface to
+the host. Since that interface is basically a single strand of
+ethernet with two nodes on it (UML and the host) and arp requests
+don't cross networks, they will fail to elicit any responses. So,
+what you want is for UML to just blindly throw all packets at the host
+and let it figure out what to do with them, which is what leaving out
+the network route and adding the default route does.<p></p>
+<p> 
+Note: If you can't communicate with other hosts on your physical
+ethernet, it's probably because of a network route that's
+automatically set up. If you run 'route -n' and see a route that
+looks like this:
+<blockquote><code>
+<pre>Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
+192.168.0.0     0.0.0.0         255.255.255.0   U     0      0      0   eth0
+</pre>
+</code></blockquote>
+with a mask that's not 255.255.255.255, then replace it with a route
+to your host:
+<blockquote><code>
+<pre>UML# 
+route del -net 192.168.0.0 dev eth0 netmask 255.255.255.0
+</pre>
+</code></blockquote>
+<blockquote><code>
+<pre>UML# 
+route add -host 192.168.0.4 dev eth0
+</pre>
+</code></blockquote>
+This, plus the default route to the host, will allow UML to exchange
+packets with any machine on your ethernet.<p></p>
+<h2><a name=ss6.5>6.5</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc6.5>Multicast</a>
+</h2>
+<p>The simplest way to set up a virtual network between multiple UMLs is
+to use the mcast transport. This was written by Harald Welte and is
+present in UML version 2.4.5-5um and later. Your system must have
+multicast enabled in the kernel and there must be a multicast-capable
+network device on the host. Normally, this is eth0, but if there is
+no ethernet card on the host, then you will likely get strange error
+messages when you bring the device up inside UML.</p>
+<p> 
+To use it, run two UMLs with 
+<blockquote><code>
+<pre> eth0=mcast
+</pre>
+</code></blockquote>
+on their command lines. Log in, configure the ethernet device in each
+machine with different IP addresses:
+<blockquote><code>
+<pre>UML1# ifconfig eth0 192.168.0.254
+</pre>
+</code></blockquote>
+<blockquote><code>
+<pre>UML2# ifconfig eth0 192.168.0.253
+</pre>
+</code></blockquote>
+and they should be able to talk to each other.<p></p>
+<p> 
+The full set of command line options for this transport are
+<blockquote><code>
+<pre> 
+ethn=mcast,ethernet address,multicast
+address,multicast port,ttl
+</pre>
+</code></blockquote>
+Harald's original README is 
+<a href=http://user-mode-linux.sourceforge.net/text/mcast.txt>here</a> and explains
+these in detail, as well as some other issues.<p></p>
+<h2><a name=ss6.6>6.6</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc6.6>TUN/TAP with the uml_net helper</a>
+</h2>
+<p>TUN/TAP is the preferred mechanism on 2.4 to exchange packets with the
+host. The TUN/TAP backend has been in UML since 2.4.9-3um.</p>
+<p> 
+The easiest way to get up and running is to let the setuid uml_net
+helper do the host setup for you. This involves insmod-ing the tun.o
+module if necessary, configuring the device, and setting up IP
+forwarding, routing, and proxy arp. If you are new to UML networking,
+do this first. If you're concerned about the security implications of
+the setuid helper, use it to get up and running, then read the next
+section to see how to have UML use a preconfigured tap device, which
+avoids the use of uml_net.</p>
+<p> 
+If you specify an IP address for the host side of the device, the
+uml_net helper will do all necessary setup on the host - the only
+requirement is that TUN/TAP be available, either built in to the host
+kernel or as the tun.o module.</p>
+<p>The format of the command line switch to attach a device to a TUN/TAP device
+is 
+<blockquote><code>
+<pre>eth &lt;n&gt; =tuntap,,, &lt;host IP address&gt; 
+</pre>
+</code></blockquote>
+For example, this argument will attach the UML's eth0 to
+the next available tap device, assign the IP address 
+192.168.0.254 to the host side of the tap device, and
+assign an ethernet address to it based on the IP address assigned to
+it by ifconfig inside UML.
+<blockquote><code>
+<pre>eth0=tuntap,,,192.168.0.254
+</pre>
+</code></blockquote>
+<p></p>
+<p> 
+If you using the uml_net helper to set up the host side of the
+networking, as in this example, note that changing the UML IP address
+will cause uml_net to change the host routing and arping to match.
+This is one reason you should not be using uml_net if there is any
+possibility that the user inside the UML may be unfriendly. This
+feature is convenient, but can be used to make the UML pretend to be
+something like your name server or mail server, and the host will
+steal packets intended for those servers and forward them to the UML.
+See the next section for setting up networking in a secure manner.</p>
+<p> 
+There are a couple potential problems with running the TUN/TAP
+transport on a 2.4 host kernel
+<ul>
+<li>TUN/TAP seems not to work on 2.4.3 and earlier. Upgrade the host
+kernel or use the ethertap transport.
+</li>
+<li>With an upgraded kernel, TUN/TAP may fail with 
+<blockquote><code>
+<pre>File descriptor in bad state
+</pre>
+</code></blockquote>
+This is due to a header mismatch between the upgraded kernel and the
+kernel that was originally installed on the machine. The fix is to
+make sure that /usr/src/linux points to the headers for the running kernel.
+</li>
+</ul>
+These were pointed out by 
+<a href=http://user-mode-linux.sourceforge.net/old/timro%20at%20trkr%20dot%20net>Tim Robinson</a> 
+in 
+<a href=http://www.geocrawler.com/lists/3/SourceForge/597/0/>http://www.geocrawler.com/lists/3/SourceForge/597/0/</a> name="this uml-user post"&gt; .<p></p>
+<h2><a name=ss6.7>6.7</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc6.7>TUN/TAP with a preconfigured tap device</a>
+</h2>
+<p>If you prefer not to have UML use uml_net (which is somewhat
+insecure), with UML 2.4.17-11, you can set up a TUN/TAP device
+beforehand. The setup needs to be done as root, but once that's done,
+there is no need for root assistance. Setting up the device is done
+as follows: 
+<ul>
+<li>Create the device with tunctl (available from the UML utilities
+tarball)
+<blockquote><code>
+<pre>host#  tunctl -u uid
+</pre>
+</code></blockquote>
+where uid is the user id or username that UML will be run as.
+This will tell you what device was created.
+</li>
+<li>Configure the device IP (change IP addresses and device name to suit)
+<blockquote><code>
+<pre>host#  ifconfig tap0 192.168.0.254 up
+</pre>
+</code></blockquote>
+</li>
+<li>Set up routing and arping if desired - this is my recipe, there are
+other ways of doing the same thing
+<blockquote><code>
+<pre>host#  
+bash -c 'echo 1 &gt; /proc/sys/net/ipv4/ip_forward'
+</pre>
+</code></blockquote>
+<blockquote><code>
+<pre>host#  
+route add -host 192.168.0.253 dev tap0
+</pre>
+</code></blockquote>
+<blockquote><code>
+<pre>host#  
+bash -c 'echo 1 &gt; /proc/sys/net/ipv4/conf/tap0/proxy_arp'
+</pre>
+</code></blockquote>
+<blockquote><code>
+<pre>host#  
+arp -Ds 192.168.0.253 eth0 pub
+</pre>
+</code></blockquote>
+Note that this must be done every time the host boots - this
+configuration is not stored across host reboots. So, it's probably a
+good idea to stick it in an rc file. An even better idea would be a
+little utility which reads the information from a config file and sets
+up devices at boot time.
+</li>
+<li>Rather than using up two IPs and ARPing for one of them, you can also 
+provide direct access to your LAN by the UML by using a bridge.
+<blockquote><code>
+<pre>host#  
+brctl addbr br0
+</pre>
+</code></blockquote>
+<blockquote><code>
+<pre>host#  
+ifconfig eth0 0.0.0.0 promisc up
+</pre>
+</code></blockquote>
+<blockquote><code>
+<pre>host#  
+ifconfig tap0 0.0.0.0 promisc up
+</pre>
+</code></blockquote>
+<blockquote><code>
+<pre>host#  
+ifconfig br0 192.168.0.1 netmask 255.255.255.0 up
+</pre>
+</code></blockquote>
+<blockquote><code>
+<pre>host#  
+brctl stp br0 off
+</pre>
+</code></blockquote>
+<blockquote><code>
+<pre>host#  
+brctl setfd br0 1
+</pre>
+</code></blockquote>
+<blockquote><code>
+<pre>host#  
+brctl sethello br0 1
+</pre>
+</code></blockquote>
+<blockquote><code>
+<pre>host#  
+brctl addif br0 eth0
+</pre>
+</code></blockquote>
+<blockquote><code>
+<pre>host#  
+brctl addif br0 tap0
+</pre>
+</code></blockquote>
+Note that 'br0' should be setup using ifconfig with the existing IP 
+address of eth0, as eth0 no longer has its own IP.
+</li>
+<li><p> 
+Also, the /dev/net/tun device must be writable by the user running UML
+in order for the UML to use the device that's been configured for it.
+The simplest thing to do is
+<blockquote><code>
+<pre>host#  chmod 666 /dev/net/tun
+</pre>
+</code></blockquote>
+Making it world-writeable looks bad, but it seems not to be
+exploitable as a security hole. However, it does allow anyone to
+create useless tap devices (useless because they can't configure
+them), which is a DOS attack. A somewhat more secure alternative
+would to be to create a group containing all the users who have
+preconfigured tap devices and chgrp /dev/net/tun to that group with
+mode 664 or 660.<p></p>
+</li>
+<li>Once the device is set up, run UML with 
+<blockquote><code>
+<pre> eth0=tuntap,devicename
+</pre>
+</code></blockquote>
+ i.e. 
+<blockquote><code>
+<pre> eth0=tuntap,tap0
+</pre>
+</code></blockquote>
+ on the command line (or do it with
+the mconsole config command).
+</li>
+<li>Bring the eth device up in UML and you're in business.
+</li>
+</ul>
+If you don't want that tap device any more, you can make it
+non-persistent with 
+<blockquote><code>
+<pre>host#  tunctl -d tap device
+</pre>
+</code></blockquote>
+Finally, tunctl has a -b (for brief mode) switch which causes it to
+output only the name of the tap device it created. This makes it
+suitable for capture by a script:
+<blockquote><code>
+<pre>host#  TAP=`tunctl -u 1000 -b`
+</pre>
+</code></blockquote>
+<p></p>
+<h2><a name=ss6.8>6.8</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc6.8>Ethertap</a>
+</h2>
+<p>Ethertap is the general mechanism on 2.2 for userspace processes to
+exchange packets with the kernel.</p>
+<p> </p>
+<p>To use this transport, you need to describe the virtual network
+device on the UML command line. The general format for this is
+<blockquote><code>
+<pre>eth &lt;n&gt; =ethertap, &lt;device&gt; , &lt;ethernet address&gt; , &lt;host IP address&gt; 
+</pre>
+</code></blockquote>
+So, the previous example
+<blockquote><code>
+<pre>eth0=ethertap,tap0,fe:fd:0:0:0:1,192.168.0.254
+</pre>
+</code></blockquote>
+attaches the UML eth0 device to the host 
+/dev/tap0, assigns it the
+ethernet address fe:fd:0:0:0:1, and assigns the IP address
+192.168.0.254 to the host side of the tap device.<p></p>
+<p> 
+The tap device is mandatory, but the others are optional. If the
+ethernet address is omitted, one will be assigned to it.</p>
+<p> 
+The presence of the tap IP address will cause the helper to run and do
+whatever host setup is needed to allow the virtual machine to
+communicate with the outside world. If you're not sure you know what
+you're doing, this is the way to go.</p>
+<p> 
+If it is absent, then you must configure the tap device and whatever
+arping and routing you will need on the host. However, even in this
+case, the uml_net helper still needs to be in your path and it must be
+setuid root if you're not running UML as root. This is because the
+tap device doesn't support SIGIO, which UML needs in order to use
+something as a source of input. So, the helper is used as a
+convenient asynchronous IO thread.</p>
+<p>If you're using the uml_net helper, you can ignore the following host
+setup - uml_net will do it for you. You just need to make sure you
+have ethertap available, either built in to the host kernel or
+available as a module.</p>
+<p> 
+If you want to set things up yourself, you need to make
+sure that the appropriate /dev entry exists. If it doesn't, become
+root and create it as follows (the $[ ... ] is bash syntax for adding 16 to
+the minor number) :
+<blockquote><code>
+<pre>mknod /dev/tap &lt;minor&gt;  c 36 $[  &lt;minor&gt;  + 16 ]
+</pre>
+</code></blockquote>
+For example, this is how to create /dev/tap0:
+<blockquote><code>
+<pre>mknod /dev/tap0 c 36 $[ 0 + 16 ]
+</pre>
+</code></blockquote>
+<p></p>
+<p>You also need to make sure that the host kernel has ethertap support.
+If ethertap is enabled as a module, you apparently need to insmod
+ethertap once for each ethertap device you want to enable. So, 
+<blockquote><code>
+<pre>host#  
+insmod ethertap
+</pre>
+</code></blockquote>
+will give you the tap0 interface. To get the tap1 interface, you need
+to run
+<blockquote><code>
+<pre>host#  
+insmod ethertap unit=1 -o ethertap1
+</pre>
+</code></blockquote>
+<p></p>
+<h2><a name=ss6.9>6.9</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc6.9>The switch daemon</a>
+</h2>
+<p><b>Note</b>: This is the daemon formerly known as uml_router, but
+which was renamed so the network weenies of the world would stop
+growling at me.</p>
+<p> 
+The switch daemon, uml_switch, provides a mechanism for creating a
+totally virtual network. By default, it provides no connection to the
+host network (but see -tap, below).</p>
+<p> 
+The first thing you need to do is run the daemon. Running it with no
+arguments will make it listen on a default unix domain socket.</p>
+<p> 
+If you want it to listen on a different socket, use
+<blockquote><code>
+<pre> -unix socket
+</pre>
+</code></blockquote>
+<p></p>
+<p>If you want it to act as a hub rather than a switch, use
+<blockquote><code>
+<pre> -hub
+</pre>
+</code></blockquote>
+If you're planning on putting it in hub mode so you can sniff UML
+traffic from a tap device on the host, it appears that you need to
+assign the tap an IP address before you'll see any packets on it.<p></p>
+<p> 
+If you want the switch to be connected to host networking (allowing the
+umls to get access to the outside world through the host), use
+<blockquote><code>
+<pre> -tap tap0
+</pre>
+</code></blockquote>
+<p></p>
+<p> 
+Note that the tap device must be preconfigured (see "TUN/TAP with a
+preconfigured tap device", above). If you're using a different tap
+device than tap0, specify that instead of tap0.</p>
+<p> 
+uml_switch can be backgrounded as follows
+<blockquote><code>
+<pre>host% 
+uml_switch [ options ] &lt; /dev/null &gt; /dev/null
+</pre>
+</code></blockquote>
+The reason it doesn't background by default is that it listens to
+stdin for EOF. When it sees that, it exits.<p></p>
+<p> 
+The general format of the kernel command line switch is
+<blockquote><code>
+<pre> 
+ethn=daemon,ethernet address,socket type,socket
+</pre>
+</code></blockquote>
+You can leave off everything except the 'daemon'. You only need to
+specify the ethernet address if the one that will be assigned to it
+isn't acceptable for some reason. The rest of the arguments describe
+how to communicate with the daemon. You should only specify them if
+you told the daemon to use different sockets than the default. So, if
+you ran the daemon with no arguments, running the UML on the same
+machine with 
+<blockquote><code>
+<pre> 
+eth0=daemon
+</pre>
+</code></blockquote>
+will cause the eth0 driver to attach itself to the daemon correctly.
+The socket argument is the filename of a Unix domain socket which is
+used for communications between uml_switch and the UMLs on its network.
+If you do specify a different socket from the default, which you will
+need to do if you want multiple, separate uml_switch networks on the
+host, you need to make sure that you name the same path for the socket
+on both the uml_switch and UML command lines.<p></p>
+<p> 
+Currently the only supported value for the socket type is "unix".</p>
+<h2><a name=ss6.10>6.10</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc6.10>Slip</a>
+</h2>
+<p>Slip is another, less general, mechanism for a process to communicate
+with the host networking. In contrast to the ethertap interface,
+which exchanges ethernet frames with the host and can be used to
+transport any higher-level protocol, it can only be used to transport
+IP.</p>
+<p> 
+The general format of the command line switch is
+<blockquote><code>
+<pre> 
+ethn=slip,slip IP
+</pre>
+</code></blockquote>
+The slip IP argument is the IP address that will be assigned to the
+host end of the slip device. If it is specified, the helper will run
+and will set up the host so that the virtual machine can reach it and
+the rest of the network.<p></p>
+<p> 
+There are some oddities with this interface that you should be aware
+of. You should only specify one slip device on a given virtual
+machine, and its name inside UML will be 'umn', not 'eth0' or whatever
+you specified on the command line. These problems will be fixed at some point.</p>
+<h2><a name=ss6.11>6.11</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc6.11>Slirp</a>
+</h2>
+<p>slirp uses an external program, usually /usr/bin/slirp, to provide IP
+only networking connectivity through the host. This is similar to IP
+masquerading with a firewall, although the translation is performed in
+user-space, rather than by the kernel. As slirp does not set up any
+interfaces on the host, or changes routing, slirp does not require
+root access or setuid binaries on the host.</p>
+<p> 
+The general format of the command line switch for slirp is:
+<blockquote><code>
+<pre> 
+ethn=slirp,ethernet address,slirp path
+</pre>
+</code></blockquote>
+The ethernet address is optional, as UML will set up the interface
+with an ethernet address based upon the initial IP address of the 
+interface. The slirp path is generally /usr/bin/slirp, although it
+will depend on distribution.<p></p>
+<p> 
+The slirp program can have a number of options passed to the command line
+and we can't add them to the UML command line, as they will be parsed
+incorrectly. Instead, a wrapper shell script can be written or the options
+inserted into the &nbsp;/.slirprc file. More information on all of the slirp
+options can be found in its man pages.</p>
+<p> 
+The eth0 interface on UML should be set up with the IP 10.2.0.15, 
+although you can use anything as long as it is not used by a network you 
+will be connecting to. The default route on UML should be set to use 
+'eth0' without a gateway IP:
+<blockquote><code>
+<pre>UML# 
+route add default dev eth0
+</pre>
+</code></blockquote>
+slirp provides a number of useful IP addresses which can be used by 
+UML, such as 10.0.2.3 which is an alias for the DNS server specified in 
+/etc/resolv.conf on the host or the IP given in the 'dns' option for slirp.<p></p>
+<p> 
+Even with a baudrate setting higher than 115200, the slirp connection 
+is limited to 115200. If you need it to go faster, the slirp binary 
+needs to be compiled with FULL_BOLT defined in config.h.</p>
+<h2><a name=ss6.12>6.12</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc6.12>pcap</a>
+</h2>
+<p>The pcap transport is attached to a UML ethernet device on the command 
+line or with uml_mconsole with the following syntax:
+<blockquote><code>
+<pre> 
+ethn=pcap,host interface,filter
+expression,option1,option2 
+</pre>
+</code></blockquote>
+The expression and options are optional.<p></p>
+<p> 
+The interface is whatever network device on the host you want to sniff.
+The expression is a pcap filter expression, which is also what tcpdump
+uses, so if you know how to specify tcpdump filters, you will use the
+same expressions here. The options are up to two of 'promisc',
+'nopromisc', 'optimize', 'nooptimize'. 'promisc' and 'nopromisc'
+control whether pcap puts the host interface into promiscuous
+mode. 'optimize' and 'nooptimize' control whether the pcap expression
+optimizer is used. </p>
+<p> 
+Example:
+<blockquote><code>
+<pre> 
+eth0=pcap,eth0,tcp
+
+eth1=pcap,eth0,!tcp
+</pre>
+</code></blockquote>
+will cause the UML eth0 to emit all tcp packets on the host eth0 and the
+UML eth1 to emit all non-tcp packets on the host eth0.<p></p>
+<h2><a name=ss6.13>6.13</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc6.13>Setting up the host yourself</a>
+</h2>
+<p>If you don't specify an address for the host side of the ethertap or
+slip device, UML won't do any setup on the host. So this is what is
+needed to get things working (the examples use a host-side IP of
+192.168.0.251 and a UML-side IP of 192.168.0.250 - adjust to suit your
+own network):
+<ul>
+<li>The device needs to be configured with its IP address. Tap devices
+are also configured with an mtu of 1484. Slip devices are configured
+with a point-to-point address pointing at the UML ip address.
+<blockquote><code>
+<pre>host#  ifconfig tap0 arp mtu 1484 192.168.0.251 up
+</pre>
+</code></blockquote>
+<blockquote><code>
+<pre>host#  
+ifconfig sl0 192.168.0.251 pointopoint 192.168.0.250 up
+</pre>
+</code></blockquote>
+</li>
+<li>If a tap device is being set up, a route is set to the UML IP.
+<blockquote><code>
+<pre>UML# route add -host 192.168.0.250 gw 192.168.0.251
+</pre>
+</code></blockquote>
+</li>
+<li>To allow other hosts on your network to see the virtual machine, proxy
+arp is set up for it.
+<blockquote><code>
+<pre>host#  arp -Ds 192.168.0.250 eth0 pub
+</pre>
+</code></blockquote>
+</li>
+<li>Finally, the host is set up to route packets.
+<blockquote><code>
+<pre>host#  echo 1 &gt; /proc/sys/net/ipv4/ip_forward
+</pre>
+</code></blockquote>
+</li>
+</ul>
+<p></p>
+<hr>
+<a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-7.html>Next</a>
+<a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-5.html>Previous</a>
+<a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc6>Contents</a>
+<div class=youdao_tans_modal style=display:none></div>

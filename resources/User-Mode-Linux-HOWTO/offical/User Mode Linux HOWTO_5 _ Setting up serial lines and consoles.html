@@ -1,0 +1,220 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 3.2 Final//EN"> <html style><!--
+ Page saved with SingleFile 
+ url: http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-5.html 
+ saved date: Thu Jun 17 2021 15:26:09 GMT+0800 (China Standard Time)
+--><meta charset=utf-8>
+<meta name=GENERATOR content="LinuxDoc-Tools 0.9.21">
+<title>User Mode Linux HOWTO : Setting up serial lines and consoles</title>
+<link href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-6.html rel=next>
+<link href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-4.html rel=previous>
+<link href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc5 rel=contents>
+<style>h2{font-size:16px;margin-top:16px}.youdao_tans_modal a[href^='#'],a:not([href]),a[href='']{color:#434343}</style><link type=image/x-icon rel="shortcut icon" href="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="><style>.sf-hidden{display:none!important}</style><link rel=canonical href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-5.html></head>
+<body>
+<a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-6.html>Next</a>
+<a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-4.html>Previous</a>
+<a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc5>Contents</a>
+<hr>
+<h2><a name=input></a> <a name=s5>5.</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc5>Setting up serial lines and consoles</a></h2>
+<p> 
+It is possible to attach UML serial lines and consoles to many types
+of host I/O channels by specifying them on the command line.</p>
+<p> 
+You can attach them to host ptys, ttys, file descriptors, and ports.
+This allows you to do things like 
+<ul>
+<li>have a UML console appear on an unused host console,
+</li>
+<li>hook two virtual machines together by having one attach to a pty and
+having the other attach to the corresponding tty
+</li>
+<li>make a virtual machine accessible from the net by attaching a console
+to a port on the host.
+</li>
+</ul>
+<p></p>
+<p> 
+The general format of the command line option is device=channel.</p>
+<p> </p>
+<h2><a name=ss5.1>5.1</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc5.1>Specifying the device</a>
+</h2>
+<p>Devices are specified with "con" or "ssl" (console or serial line,
+respectively), optionally with a device number if you are talking
+about a specific device.</p>
+<p> 
+Using just "con" or "ssl" describes all of the consoles or serial
+lines. If you want to talk about console #3 or serial line #10, they
+would be "con3" and "ssl10", respectively.</p>
+<p> 
+A specific device name will override a less general "con=" or "ssl=".
+So, for example, you can assign a pty to each of the serial lines
+except for the first two like this: 
+<blockquote><code>
+<pre> ssl=pty ssl0=tty:/dev/tty0 ssl1=tty:/dev/tty1
+</pre>
+</code></blockquote>
+The specificity of the device name is all that matters; order on the
+command line is irrelevant.<p></p>
+<h2><a name=ss5.2>5.2</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc5.2>Specifying the channel</a>
+</h2>
+<p>There are a number of different types of channels to attach a UML
+device to, each with a different way of specifying exactly what to
+attach to.
+<ul>
+<li>pseudo-terminals - device=pty
+pts terminals - device=pts
+<p> 
+This will cause UML to allocate a free host pseudo-terminal for the
+device. The terminal that it got will be announced in the boot log.
+You access it by attaching a terminal program to the corresponding tty:
+<ul>
+<li>screen /dev/pts/n
+</li>
+<li>screen /dev/ttyxx
+</li>
+<li>minicom -o -p /dev/ttyxx - minicom seems not able to handle pts
+devices
+</li>
+<li>kermit - start it up, 'open' the device, then 'connect'
+</li>
+</ul>
+<p></p>
+<p> </p>
+</li>
+<li>terminals - device=tty:tty device file
+<p> 
+This will make UML attach the device to the specified tty (i.e
+<blockquote><code>
+<pre> con1=tty:/dev/tty3
+</pre>
+</code></blockquote>
+will attach UML's console 1 to the host's /dev/tty3). If the tty that
+you specify is the slave end of a tty/pty pair, something
+else must have already opened the corresponding pty in order for this
+to work.<p></p>
+<p> </p>
+</li>
+<li>xterms - device=xterm
+<p> 
+UML will run an xterm and the device will be attached to it.</p>
+<p> </p>
+</li>
+<li>Port - device=port:port number
+<p> 
+This will attach the UML devices to the specified host port.
+Attaching console 1 to the host's port 9000 would be done like this:
+<blockquote><code>
+<pre> con1=port:9000
+</pre>
+</code></blockquote>
+Attaching all the serial lines to that port would be done similarly:
+<blockquote><code>
+<pre> ssl=port:9000
+</pre>
+</code></blockquote>
+You access these devices by telnetting to that port. Each active
+telnet session gets a different device. If there are more telnets to
+a port than UML devices attached to it, then the extra telnet sessions
+will block until an existing telnet detaches, or until another device
+becomes active (i.e. by being activated in /etc/inittab).<p></p>
+<p> 
+This channel has the advantage that you can both attach multiple UML
+devices to it and know how to access them without reading the UML boot
+log. It is also unique in allowing access to a UML from remote
+machines without requiring that the UML be networked. This could be
+useful in allowing public access to UMLs because they would be
+accessible from the net, but wouldn't need any kind of network
+filtering or access control because they would have no network
+access.</p>
+<p> 
+If you attach the main console to a portal, then the UML boot will
+appear to hang. In reality, it's waiting for a telnet to connect, at
+which point the boot will proceed.</p>
+<p> </p>
+</li>
+<li>already-existing file descriptors - device=file
+descriptor
+<p> 
+If you set up a file descriptor on the UML command line, you can
+attach a UML device to it. This is most commonly used to put the main
+console back on stdin and stdout after assigning all the other
+consoles to something else:
+<blockquote><code>
+<pre> con0=fd:0,fd:1 con=pts
+</pre>
+</code></blockquote>
+<p></p>
+<p> </p>
+</li>
+<li>Nothing - device=null
+<p> 
+This allows the device to be opened, in contrast to 'none', but reads
+will block, and writes will succeed and the data will be thrown out.</p>
+<p> </p>
+</li>
+<li>None - device=none
+<p> 
+This causes the device to disappear. If you are using devfs, the
+device will not appear in /dev. If not, then attempts to open it will
+return -ENODEV.</p>
+</li>
+</ul>
+<p></p>
+<p>You can also specify different input and output channels for a device
+by putting a comma between them:
+<blockquote><code>
+<pre> ssl3=tty:/dev/tty2,xterm
+</pre>
+</code></blockquote>
+will cause serial line 3 to accept input on the host's /dev/tty3 and
+display output on an xterm. That's a silly example - the most common
+use of this syntax is to reattach the main console to stdin and stdout
+as shown above.<p></p>
+<p> 
+If you decide to move the main console away from stdin/stdout, the
+initial boot output will appear in the terminal that you're running
+UML in. However, once the console driver has been officially
+initialized, then the boot output will start appearing wherever you
+specified that console 0 should be. That device will receive all
+subsequent output.</p>
+<h2><a name=ss5.3>5.3</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc5.3>Examples</a>
+</h2>
+<p>There are a number of interesting things you can do with this
+capability.</p>
+<p> 
+First, this is how you get rid of those bleeding console xterms by
+attaching them to host ptys:
+<blockquote><code>
+<pre> con=pty con0=fd:0,fd:1
+</pre>
+</code></blockquote>
+This will make a UML console take over an unused host virtual console,
+so that when you switch to it, you will see the UML login prompt
+rather than the host login
+prompt:
+<blockquote><code>
+<pre> con1=tty:/dev/tty6
+</pre>
+</code></blockquote>
+You can attach two virtual machines together with what amounts to a
+serial line as follows:<p></p>
+<p>Run one UML with a serial line attached to a pty -
+<blockquote><code>
+<pre> ssl1=pty
+</pre>
+</code></blockquote>
+Look at the boot log to see what pty it got (this example will assume
+that it got /dev/ptyp1).<p></p>
+<p>Boot the other UML with a serial line attached to the corresponding
+tty - 
+<blockquote><code>
+<pre> ssl1=tty:/dev/ttyp1
+</pre>
+</code></blockquote>
+Log in, make sure that it has no getty on that serial line, attach
+a terminal program like minicom to it, and you should see the login
+prompt of the other virtual machine.<p></p>
+<hr>
+<a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-6.html>Next</a>
+<a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-4.html>Previous</a>
+<a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc5>Contents</a>
+<div class="youdao_tans_modal sf-hidden"></div>

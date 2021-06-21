@@ -1,0 +1,366 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 3.2 Final//EN"> <html><!--
+ Page saved with SingleFile 
+ url: http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-11.html 
+ saved date: Thu Jun 17 2021 15:29:14 GMT+0800 (China Standard Time)
+--><meta charset=utf-8>
+<meta name=GENERATOR content="LinuxDoc-Tools 0.9.21">
+<title>User Mode Linux HOWTO : Kernel debugging</title>
+<link href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-12.html rel=next>
+<link href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-10.html rel=previous>
+<link href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc11 rel=contents>
+<style>h2{font-size:16px;margin-top:16px}.youdao_tans_modal a[href^='#'],a:not([href]),a[href='']{color:#434343}</style><link type=image/x-icon rel="shortcut icon" href="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="><style>.sf-hidden{display:none!important}</style><link rel=canonical href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-11.html></head>
+<body>
+<a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-12.html>Next</a>
+<a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-10.html>Previous</a>
+<a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc11>Contents</a>
+<hr>
+<h2><a name=debugging></a> <a name=s11>11.</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc11>Kernel debugging</a></h2>
+<p> 
+This page describes kernel debugging with UML running in tt mode (go
+<a href=http://user-mode-linux.sourceforge.net/skas.html>here</a> for the details on
+skas and tt mode). Kernel debugging in skas mode is described 
+<a href=http://user-mode-linux.sourceforge.net/debugging-skas.html>here</a> .</p>
+<p> 
+Since the UML runs as a normal Linux process, it is
+possible to debug it with gdb almost like any other process. It is
+slightly different because the kernel's threads are already being
+ptraced for system call interception, so gdb can't ptrace them.
+However, a mechanism has been added to work around that problem.</p>
+<p> 
+In order to debug the kernel, you need build it from source. See 
+<a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-2.html#compile>Compiling the kernel and modules</a> for
+information on doing that. Make sure that you enable CONFIG_DEBUGSYM
+and CONFIG_PT_PROXY during the config. These will compile the kernel
+with -g, and enable the ptrace proxy so that gdb works with UML,
+respectively.</p>
+<p> </p>
+<h2><a name=ss11.1>11.1</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc11.1>Starting the kernel under gdb</a>
+</h2>
+<p>You can have the kernel running under the control of gdb from the
+beginning by putting 'debug' on the command line. You will get an
+xterm with gdb running inside it. The kernel will send some commands
+to gdb which will leave it stopped at the beginning of start_kernel.
+At this point, you can get things going with 'next', 'step', or 'cont'.</p>
+<p> 
+There is a transcript of a debugging session 
+<a href=http://user-mode-linux.sourceforge.net/old/debug-session.html>here</a> , with breakpoints being set in the
+scheduler and in an interrupt handler.</p>
+<h2><a name=ss11.2>11.2</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc11.2>Examining sleeping processes</a>
+</h2>
+<p>Not every bug is evident in the currently running process. Sometimes,
+processes hang in the kernel when they shouldn't because they've
+deadlocked on a semaphore or something similar. In this case, when
+you ^C gdb and get a backtrace, you will see the idle thread, which
+isn't very relevant.</p>
+<p> 
+What you want is the stack of whatever process is sleeping when it
+shouldn't be. You need to figure out which process that is, which is
+generally fairly easy. Then you need to get its host process id,
+which you can do either by looking at ps on the host or at
+task.thread.extern_pid in gdb.</p>
+<p> 
+Now what you do is this:
+<ul>
+<li>detach from the current thread
+<blockquote><code>
+<pre>(UML gdb)  det
+</pre>
+</code></blockquote>
+</li>
+<li>attach to the thread you are interested in
+<blockquote><code>
+<pre>(UML gdb)  att &lt;host pid&gt;
+</pre>
+</code></blockquote>
+</li>
+<li>look at its stack and anything else of interest
+<blockquote><code>
+<pre>(UML gdb)  bt
+</pre>
+</code></blockquote>
+Note that you can't do anything at this point that requires that a
+process execute, e.g. calling a function
+</li>
+<li>when you're done looking at that process, reattach to the current thread
+and continue it
+<blockquote><code>
+<pre>(UML gdb)  
+att 1
+</pre>
+</code></blockquote>
+<blockquote><code>
+<pre>(UML gdb)  
+c
+</pre>
+</code></blockquote>
+Here, specifying any pid which is not the process id of a UML thread
+will cause gdb to reattach to the current thread. I commonly use 1,
+but any other invalid pid would work.
+</li>
+</ul>
+<p></p>
+<h2><a name=ss11.3>11.3</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc11.3>Running ddd on UML</a>
+</h2>
+<p>ddd works on UML, but requires a special kludge. The process goes
+like this:
+<ul>
+<li>Start ddd
+<blockquote><code>
+<pre>host% ddd linux
+</pre>
+</code></blockquote>
+</li>
+<li>With ps, get the pid of the gdb that ddd started. You can ask the gdb
+to tell you, but for some reason that confuses things and causes a hang.
+</li>
+<li>run UML with 'debug=parent gdb-pid=&lt;pid&gt;' added to the command line
+- it will just sit there after you hit return
+</li>
+<li>type 'att 1' to the ddd gdb and you will see something like
+<blockquote><code>
+<pre>0xa013dc51 in __kill ()
+
+
+(gdb) 
+</pre>
+</code></blockquote>
+</li>
+<li>At this point, type 'c', UML will boot up, and you can use ddd just as
+you do on any other process.
+</li>
+</ul>
+<p></p>
+<h2><a name=ss11.4>11.4</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc11.4>Debugging modules</a>
+</h2>
+<p>gdb has support for debugging code which is dynamically loaded into
+the process. This support is what is needed to debug kernel modules
+under UML.</p>
+<p>Using that support is somewhat complicated. You have to tell gdb what
+object file you just loaded into UML and where in memory it is. Then,
+it can read the symbol table, and figure out where all the symbols are
+from the load address that you provided. It gets more interesting
+when you load the module again (i.e. after an rmmod). You have to
+tell gdb to forget about all its symbols, including the main UML ones
+for some reason, then load then all back in again.</p>
+<p>There's an easy way and a hard way to do this. The easy way is to use
+the umlgdb expect script written by Chandan Kudige. It basically
+automates the process for you.</p>
+<p>First, you must tell it where your modules are. There is a list in
+the script that looks like this:
+<blockquote><code>
+<pre>set MODULE_PATHS {
+"fat" "/usr/src/uml/linux-2.4.18/fs/fat/fat.o"
+"isofs" "/usr/src/uml/linux-2.4.18/fs/isofs/isofs.o"
+"minix" "/usr/src/uml/linux-2.4.18/fs/minix/minix.o"
+}
+</pre>
+</code></blockquote>
+You change that to list the names and paths of the modules that you
+are going to debug. Then you run it from the toplevel directory of
+your UML pool and it basically tells you what to do:<p></p>
+<p>
+<blockquote><code>
+<pre>            ******** GDB pid is 21903 ********
+Start UML as: ./linux &lt;kernel switches&gt; debug gdb-pid=21903
+
+
+
+GNU gdb 5.0rh-5 Red Hat Linux 7.1
+Copyright 2001 Free Software Foundation, Inc.
+GDB is free software, covered by the GNU General Public License, and you are
+welcome to change it and/or distribute copies of it under certain conditions.
+Type "show copying" to see the conditions.
+There is absolutely no warranty for GDB.  Type "show warranty" for details.
+This GDB was configured as "i386-redhat-linux"...
+(gdb) b sys_init_module
+Breakpoint 1 at 0xa0011923: file module.c, line 349.
+(gdb) att 1
+</pre>
+</code></blockquote>
+After you run UML and it sits there doing nothing, you hit return at
+the 'att 1' and continue it:
+<blockquote><code>
+<pre>Attaching to program: /home/jdike/linux/2.4/um/./linux, process 1
+0xa00f4221 in __kill ()
+(UML gdb)  c
+Continuing.
+</pre>
+</code></blockquote>
+At this point, you debug normally. When you insmod something, the
+expect magic will kick in and you'll see something like:
+<blockquote><code>
+<pre> *** Module hostfs loaded *** 
+Breakpoint 1, sys_init_module (name_user=0x805abb0 "hostfs", 
+    mod_user=0x8070e00) at module.c:349
+349             char *name, *n_name, *name_tmp = NULL;
+(UML gdb)  finish
+Run till exit from #0  sys_init_module (name_user=0x805abb0 "hostfs", 
+    mod_user=0x8070e00) at module.c:349
+0xa00e2e23 in execute_syscall (r=0xa8140284) at syscall_kern.c:411
+411             else res = EXECUTE_SYSCALL(syscall, regs);
+Value returned is $1 = 0
+(UML gdb)  
+p/x (int)module_list + module_list-&gt;size_of_struct
+
+$2 = 0xa9021054
+(UML gdb)  symbol-file ./linux
+Load new symbol table from "./linux"? (y or n) y
+Reading symbols from ./linux...
+done.
+(UML gdb)  
+add-symbol-file /home/jdike/linux/2.4/um/arch/um/fs/hostfs/hostfs.o 0xa9021054
+
+add symbol table from file "/home/jdike/linux/2.4/um/arch/um/fs/hostfs/hostfs.o" at
+        .text_addr = 0xa9021054
+ (y or n) y
+
+Reading symbols from /home/jdike/linux/2.4/um/arch/um/fs/hostfs/hostfs.o...
+done.
+(UML gdb)  p *module_list
+$1 = {size_of_struct = 84, next = 0xa0178720, name = 0xa9022de0 "hostfs", 
+  size = 9016, uc = {usecount = {counter = 0}, pad = 0}, flags = 1, 
+  nsyms = 57, ndeps = 0, syms = 0xa9023170, deps = 0x0, refs = 0x0, 
+  init = 0xa90221f0 &lt;init_hostfs&gt;, cleanup = 0xa902222c &lt;exit_hostfs&gt;, 
+  ex_table_start = 0x0, ex_table_end = 0x0, persist_start = 0x0, 
+  persist_end = 0x0, can_unload = 0, runsize = 0, kallsyms_start = 0x0, 
+  kallsyms_end = 0x0, 
+  archdata_start = 0x1b855 &lt;Address 0x1b855 out of bounds&gt;, 
+  archdata_end = 0xe5890000 &lt;Address 0xe5890000 out of bounds&gt;, 
+  kernel_data = 0xf689c35d &lt;Address 0xf689c35d out of bounds&gt;}
+&gt;&gt; Finished loading symbols for hostfs ...
+</pre>
+</code></blockquote>
+That's the easy way. It's highly recommended. The umlgdb script is
+available in the 
+<a href=http://user-mode-linux.sourceforge.net/dl-sf#UML%20utilities>UML utilities tarball</a> in tools/umlgdb/umlgdb. The 
+hard way is described below in case you're interested in what's going
+on.<p></p>
+<p>Boot the kernel under the debugger and load the module with insmod or
+modprobe. With gdb, do:
+<blockquote><code>
+<pre>(UML gdb)  p module_list
+</pre>
+</code></blockquote>
+This is a list of modules that have been loaded into the kernel, with
+the most recently loaded module first. Normally, the module you want
+is at module_list. If it's not, walk down the next links, looking at
+the name fields until find the module you want to debug. Take the
+address of that structure, and add module.size_of_struct (which in
+2.4.10 kernels is 96 (0x60)) to it. Gdb can make this hard addition for 
+you :-):
+<blockquote><code>
+<pre>(UML gdb)  
+printf "%#x\n", (int)module_list module_list-&gt;size_of_struct
+</pre>
+</code></blockquote>
+The offset from the module start occasionally changes (before 2.4.0, it
+was module.size_of_struct + 4), so it's a good idea to check the init and
+cleanup addresses once in a while, as describe below.
+Now do:
+<blockquote><code>
+<pre>(UML gdb)  
+add-symbol-file /path/to/module/on/host that_address
+</pre>
+</code></blockquote>
+Tell gdb you really want to do it, and you're in business.<p></p>
+<p>If there's any doubt that you got the offset right, like breakpoints
+appear not to work, or they're appearing in the wrong place, you can
+check it by looking at the module structure. The init and cleanup
+fields should look like:
+<blockquote><code>
+<pre>init = 0x588066b0 &lt;init_hostfs&gt;, cleanup = 0x588066c0 &lt;exit_hostfs&gt;
+</pre>
+</code></blockquote>
+with no offsets on the symbol names. If the names are right, but they
+are offset, then the offset tells you how much you need to add to the
+address you gave to add-symbol-file.<p></p>
+<p> 
+When you want to load in a new version of the module, you need to get
+gdb to forget about the old one. The only way I've found to do that
+is to tell gdb to forget about all symbols that it knows about:
+<blockquote><code>
+<pre>(UML gdb)  symbol-file
+</pre>
+</code></blockquote>
+Then reload the symbols from the kernel binary:
+<blockquote><code>
+<pre>(UML gdb)  symbol-file /path/to/kernel
+</pre>
+</code></blockquote>
+and repeat the process above. You'll also need to re-enable breakpoints.
+They were disabled when you dumped all the symbols because gdb
+couldn't figure out where they should go.<p></p>
+<h2><a name=ss11.5>11.5</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc11.5>Attaching gdb to the kernel</a>
+</h2>
+<p>If you don't have the kernel running under gdb, you can attach gdb to
+it later by sending the tracing thread a SIGUSR1. The first line of
+the console output identifies its pid:
+<blockquote><code>
+<pre>tracing thread pid = 20093
+</pre>
+</code></blockquote>
+When you send it the signal:
+<blockquote><code>
+<pre>host% kill -USR1 20093
+</pre>
+</code></blockquote>
+you will get an xterm with gdb running in it.<p></p>
+<p> 
+If you have the mconsole compiled into UML, then the mconsole client
+can be used to start gdb:
+<blockquote><code>
+<pre>(mconsole)  (mconsole) config gdb=xterm
+</pre>
+</code></blockquote>
+will fire up an xterm with gdb running in it.<p></p>
+<h2><a name=ss11.6>11.6</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc11.6>Using alternate debuggers</a>
+</h2>
+<p>UML has support for attaching to an already running debugger rather than 
+starting gdb itself. This is present in CVS as of 
+17 Apr 2001. I sent it to Alan for inclusion in 
+the ac tree, and it will be in my 2.4.4 release.</p>
+<p> 
+This is useful when gdb is a subprocess of some UI, such as emacs or ddd. It 
+can also be used to run debuggers other than gdb on UML. Below is an example
+of using strace as an alternate debugger.</p>
+<p> 
+To do this, you need to get the pid of the debugger and pass it in with the
+'gdb-pid=&lt;pid&gt;' switch along with the 'debug' switch.</p>
+<p> 
+If you are using gdb under some UI, then tell it to 'att 1', and you'll find
+yourself attached to UML.</p>
+<p> 
+If you are using something other than gdb as your debugger, then you'll need
+to get it to do the equivalent of 'att 1' if it doesn't do it automatically.</p>
+<p> 
+An example of an alternate debugger is strace. You can strace the actual
+kernel as follows:
+<ul>
+<li>Run the following in a shell
+<blockquote><code>
+<pre>host% 
+sh -c 'echo pid=$$; echo -n hit return; read x; exec strace -p 1 -o strace.out'
+</pre>
+</code></blockquote>
+</li>
+<li>Run UML with 'debug' and 'gdb-pid=&lt;pid&gt;' with the pid printed out by the
+previous command
+</li>
+<li>Hit return in the shell, and UML will start running, and strace output will
+start accumulating in the output file.
+</li>
+</ul>
+Note that this is different from running
+<blockquote><code>
+<pre>host% strace ./linux
+</pre>
+</code></blockquote>
+That will strace only the main UML thread, the tracing thread, which doesn't
+do any of the actual kernel work. It just oversees the virtual machine. In
+contrast, using strace as described above will show you the low-level activity
+of the virtual machine.<p></p>
+<hr>
+<a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-12.html>Next</a>
+<a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-10.html>Previous</a>
+<a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc11>Contents</a>
+<div class="youdao_tans_modal sf-hidden"></div>

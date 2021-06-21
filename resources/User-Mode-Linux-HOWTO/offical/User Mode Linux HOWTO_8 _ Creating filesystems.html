@@ -1,0 +1,88 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 3.2 Final//EN"> <html><!--
+ Page saved with SingleFile 
+ url: http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-8.html 
+ saved date: Thu Jun 17 2021 15:27:44 GMT+0800 (China Standard Time)
+--><meta charset=utf-8>
+<meta name=GENERATOR content="LinuxDoc-Tools 0.9.21">
+<title>User Mode Linux HOWTO : Creating filesystems</title>
+<link href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-9.html rel=next>
+<link href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-7.html rel=previous>
+<link href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc8 rel=contents>
+<style>h2{font-size:16px;margin-top:16px}.youdao_tans_modal a[href^='#'],a:not([href]),a[href='']{color:#434343}</style><link type=image/x-icon rel="shortcut icon" href="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="><style>.sf-hidden{display:none!important}</style><link rel=canonical href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-8.html></head>
+<body>
+<a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-9.html>Next</a>
+<a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-7.html>Previous</a>
+<a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc8>Contents</a>
+<hr>
+<h2><a name=fs></a> <a name=s8>8.</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc8>Creating filesystems</a></h2>
+<p> 
+You may want to create and mount new UML filesystems, either because
+your root filesystem isn't large enough or because you want to use a
+filesystem other than ext2.</p>
+<p> 
+This was written on the occasion of reiserfs being included in the
+2.4.1 kernel pool, and therefore the 2.4.1 UML, so the examples will
+talk about reiserfs. This information is generic, and the examples
+should be easy to translate to the filesystem of your choice.</p>
+<h2><a name=ss8.1>8.1</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc8.1>Create the filesystem file</a>
+</h2>
+<p>dd is your friend. All you need to do is tell dd to create an empty
+file of the appropriate size. I usually make it sparse to save time
+and to avoid allocating disk space until it's actually used. For
+example, the following command will create a sparse 100 meg file full
+of zeroes.
+<blockquote><code>
+<pre>host% 
+dd if=/dev/zero of=new_filesystem seek=100 count=1 bs=1M
+</pre>
+</code></blockquote>
+<p></p>
+<h2><a name=ss8.2>8.2</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc8.2>Assign the file to a UML device</a>
+</h2>
+<p>Add an argument like the following to the UML command line:
+<blockquote><code>
+<pre> 
+ubd4=new_filesystem
+</pre>
+</code></blockquote>
+making sure that you use an unassigned ubd device number.<p></p>
+<h2><a name=ss8.3>8.3</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc8.3>Creating and mounting the filesystem</a>
+</h2>
+<p>Make sure that the filesystem is available, either by being built into
+the kernel, or available as a module, then boot up UML and log in. If
+the root filesystem doesn't have the filesystem utilities (mkfs, fsck,
+etc), then get them into UML by way of the net or hostfs.</p>
+<p> 
+Make the new filesystem on the device assigned to the new file:
+<blockquote><code>
+<pre>host#  mkreiserfs /dev/ubd/4
+
+
+&lt;----------- MKREISERFSv2 -----------&gt;
+
+ReiserFS version 3.6.25
+Block size 4096 bytes
+Block count 25856
+Used blocks 8212
+        Journal - 8192 blocks (18-8209), journal header is in block 8210
+        Bitmaps: 17
+        Root block 8211
+Hash function "r5"
+ATTENTION: ALL DATA WILL BE LOST ON '/dev/ubd/4'! (y/n)y
+journal size 8192 (from 18)
+Initializing journal - 0%....20%....40%....60%....80%....100%
+Syncing..done.
+</pre>
+</code></blockquote>
+Now, mount it:
+<blockquote><code>
+<pre>UML# 
+mount /dev/ubd/4 /mnt
+</pre>
+</code></blockquote>
+and you're in business.<p></p>
+<hr>
+<a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-9.html>Next</a>
+<a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-7.html>Previous</a>
+<a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc8>Contents</a>
+<div class="youdao_tans_modal sf-hidden"></div>

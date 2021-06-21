@@ -1,0 +1,138 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 3.2 Final//EN"> <html><!--
+ Page saved with SingleFile 
+ url: http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-9.html 
+ saved date: Thu Jun 17 2021 15:28:14 GMT+0800 (China Standard Time)
+--><meta charset=utf-8>
+<meta name=GENERATOR content="LinuxDoc-Tools 0.9.21">
+<title>User Mode Linux HOWTO : Host file access</title>
+<link href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-10.html rel=next>
+<link href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-8.html rel=previous>
+<link href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc9 rel=contents>
+<style>h2{font-size:16px;margin-top:16px}.youdao_tans_modal a[href^='#'],a:not([href]),a[href='']{color:#434343}</style><link type=image/x-icon rel="shortcut icon" href="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="><style>.sf-hidden{display:none!important}</style><link rel=canonical href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-9.html></head>
+<body>
+<a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-10.html>Next</a>
+<a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-8.html>Previous</a>
+<a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc9>Contents</a>
+<hr>
+<h2><a name=hostfs></a> <a name=s9>9.</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc9>Host file access</a></h2>
+<p> 
+If you want to access files on the host machine from inside UML, you
+can treat it as a separate machine and either nfs mount directories
+from the host or copy files into the virtual machine with scp or rcp.
+However, since UML is running on the the host, it can access those
+files just like any other process and make them available inside the
+virtual machine without needing to use the network.</p>
+<p> 
+This is now possible with the hostfs virtual filesystem. With it, you
+can mount a host directory into the UML filesystem and access the
+files contained in it just as you would on the host.</p>
+<p> 
+Note that hostfs is currently not available on 2.5. The reason is
+that there was an fs.h rework early in 2.5 which required filesystem
+changes, and I haven't got around to updating hostfs to those changes.</p>
+<h2><a name=ss9.1>9.1</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc9.1>Using hostfs</a>
+</h2>
+<p>To begin with, make sure that hostfs is available inside the virtual
+machine with 
+<blockquote><code>
+<pre>UML# cat /proc/filesystems
+</pre>
+</code></blockquote>
+hostfs should be listed. If it's not, either rebuild the kernel with
+hostfs configured into it or make sure that hostfs is built as a
+module and available inside the virtual machine, and insmod it.<p></p>
+<p> 
+Now all you need to do is run mount:
+<blockquote><code>
+<pre>UML# mount none /mnt/host -t hostfs
+</pre>
+</code></blockquote>
+will mount the host's / on the virtual machine's /mnt/host.<p></p>
+<p> 
+If you don't want to mount the host root directory, then you can
+specify a subdirectory to mount with the -o switch to mount:
+<blockquote><code>
+<pre>UML# mount none /mnt/home -t hostfs -o /home
+</pre>
+</code></blockquote>
+will mount the hosts's /home on the virtual machine's /mnt/home.<p></p>
+<h2><a name=ss9.2>9.2</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc9.2>hostfs command line options</a>
+</h2>
+<p>There is a hostfs option available on the UML command line which can
+be used confine all hostfs mounts to a host directory hierarchy or to
+prevent a hostfs user from destroying data on the host. The format is
+<blockquote><code>
+<pre> hostfs=directory,options
+</pre>
+</code></blockquote>
+The only option available at present is 'append', which forces all
+files to be opened in append mode and disallows any deletion of files.<p></p>
+<p> 
+To specify append mode without confining hostfs to a host directory,
+just leave out the directory name so that the argument begins with a
+comma:
+<blockquote><code>
+<pre> hostfs=,append
+</pre>
+</code></blockquote>
+<p></p>
+<h2><a name=ss9.3>9.3</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc9.3>hostfs as the root filesystem</a>
+</h2>
+<p>It's possible to boot from a directory hierarchy on the host using hostfs 
+rather than using the standard filesystem in a file.</p>
+<p> To start, you need that hierarchy. The easiest way is to loop mount an
+existing root_fs file:
+<blockquote><code>
+<pre>host#  mount root_fs uml_root_dir -o loop
+</pre>
+</code></blockquote>
+You need to change the filesystem type of / in etc/fstab to be 'hostfs', so
+that line looks like this:
+<blockquote><code>
+<pre>none    /       hostfs defaults 1 1
+</pre>
+</code></blockquote>
+Then you need to chown to yourself all the files in that directory that are
+owned by root. This worked for me:
+<blockquote><code>
+<pre>host#  find . -uid 0 -exec chown jdike {} \;
+</pre>
+</code></blockquote>
+If you don't want to do that because that's a filesystem image that
+you boot as a disk, then run UML as root instead.<p></p>
+<p> 
+Next, make sure that your UML kernel has hostfs compiled in, not as a 
+module. Then run UML with the following arguments added to the command line:
+<blockquote><code>
+<pre> root=/dev/root rootflags=/path/to/uml/root rootfstype=hostfs
+</pre>
+</code></blockquote>
+UML should then boot as it does normally.<p></p>
+<h2><a name=ss9.4>9.4</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc9.4>Building hostfs</a>
+</h2>
+<p>If you need to build hostfs because it's not in your kernel, you have
+two choices:</p>
+<p> 
+<ul>
+<li>Compiling hostfs into the kernel: <p> 
+Reconfigure the kernel and set the 'Host filesystem' option under
+'Processor features' to 'Y'. Recompile the kernel and reboot it.</p>
+</li>
+<li>Compiling hostfs as a module: <p> 
+Reconfigure the kernel and set the 'Host filesystem' option under
+'Processor features' to 'M'. Rebuild the kernel modules. hostfs will
+be in arch/um/fs/hostfs/hostfs.o. Install that in /lib/modules/`uname -r`/fs 
+in the virtual machine, boot it up, and 
+<blockquote><code>
+<pre>UML# insmod hostfs
+</pre>
+</code></blockquote>
+<p></p>
+</li>
+</ul>
+<p></p>
+<hr>
+<a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-10.html>Next</a>
+<a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-8.html>Previous</a>
+<a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc9>Contents</a>
+<div class="youdao_tans_modal sf-hidden"></div>

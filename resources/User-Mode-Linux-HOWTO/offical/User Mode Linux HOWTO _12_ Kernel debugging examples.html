@@ -1,0 +1,679 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 3.2 Final//EN"> <html><!--
+ Page saved with SingleFile 
+ url: http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-12.html 
+ saved date: Thu Jun 17 2021 15:29:37 GMT+0800 (China Standard Time)
+--><meta charset=utf-8>
+<meta name=GENERATOR content="LinuxDoc-Tools 0.9.21">
+<title>User Mode Linux HOWTO : Kernel debugging examples</title>
+<link href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-13.html rel=next>
+<link href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-11.html rel=previous>
+<link href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc12 rel=contents>
+<style>h2{font-size:16px;margin-top:16px}.youdao_tans_modal a[href^='#'],a:not([href]),a[href='']{color:#434343}</style><link type=image/x-icon rel="shortcut icon" href="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="><style>.sf-hidden{display:none!important}</style><link rel=canonical href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-12.html></head>
+<body>
+<a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-13.html>Next</a>
+<a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-11.html>Previous</a>
+<a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc12>Contents</a>
+<hr>
+<h2><a name=s12>12.</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc12>Kernel debugging examples</a></h2>
+<h2><a name=ss12.1>12.1</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc12.1>The case of the hung fsck</a>
+</h2>
+<p>When booting up the kernel, fsck failed, and dropped me into a shell to fix
+things up. I ran fsck -y, which hung:</p>
+<p>
+<blockquote><code>
+<pre>Setting hostname uml                    [ OK ]
+Checking root filesystem
+/dev/fhd0 was not cleanly unmounted, check forced.
+Error reading block 86894 (Attempt to read block from filesystem resulted in short read) while reading indirect blocks of inode 19780.
+
+/dev/fhd0: UNEXPECTED INCONSISTENCY; RUN fsck MANUALLY.
+        (i.e., without -a or -p options)
+[ FAILED ]
+
+*** An error occurred during the file system check.
+*** Dropping you to a shell; the system will reboot
+*** when you leave the shell.
+Give root password for maintenance
+(or type Control-D for normal startup): 
+
+[root@uml /root]# fsck -y /dev/fhd0
+fsck -y /dev/fhd0
+Parallelizing fsck version 1.14 (9-Jan-1999)
+e2fsck 1.14, 9-Jan-1999 for EXT2 FS 0.5b, 95/08/09
+/dev/fhd0 contains a file system with errors, check forced.
+Pass 1: Checking inodes, blocks, and sizes
+Error reading block 86894 (Attempt to read block from filesystem resulted in short read) while reading indirect blocks of inode 19780.  Ignore error? yes
+
+Inode 19780, i_blocks is 1548, should be 540.  Fix? yes
+
+Pass 2: Checking directory structure
+Error reading block 49405 (Attempt to read block from filesystem resulted in short read).  Ignore error? yes
+
+Directory inode 11858, block 0, offset 0: directory corrupted
+Salvage? yes
+
+Missing '.' in directory inode 11858.
+Fix? yes
+
+Missing '..' in directory inode 11858.
+Fix? yes
+</pre>
+</code></blockquote>
+<p></p>
+<p>The standard drill in this sort of situation is to fire up gdb on the
+signal thread, which, in this case, was pid 1935. In another window, I
+run gdb and attach pid 1935.</p>
+<p>
+<blockquote><code>
+<pre>~/linux/2.3.26/um 1016: gdb linux
+GNU gdb 4.17.0.11 with Linux support
+Copyright 1998 Free Software Foundation, Inc.
+GDB is free software, covered by the GNU General Public License, and you are
+welcome to change it and/or distribute copies of it under certain conditions.
+Type "show copying" to see the conditions.
+There is absolutely no warranty for GDB.  Type "show warranty" for details.
+This GDB was configured as "i386-redhat-linux"...
+
+(gdb) att 1935
+Attaching to program `/home/dike/linux/2.3.26/um/linux', Pid 1935
+0x100756d9 in __wait4 ()
+</pre>
+</code></blockquote>
+<p></p>
+<p>Let's see what's currently running:</p>
+<p>
+<blockquote><code>
+<pre>(gdb) p current_task.pid
+$1 = 0
+</pre>
+</code></blockquote>
+<p></p>
+<p>It's the idle thread, which means that fsck went to sleep for some
+reason and never woke up.</p>
+<p>Let's guess that the last process in the process list is fsck:</p>
+<p>
+<blockquote><code>
+<pre>(gdb) p current_task.prev_task.comm
+$13 = "fsck.ext2\000\000\000\000\000\000"
+</pre>
+</code></blockquote>
+<p></p>
+<p>It is, so let's see what it thinks it's up to:</p>
+<p>
+<blockquote><code>
+<pre>(gdb) p current_task.prev_task.thread
+$14 = {extern_pid = 1980, tracing = 0, want_tracing = 0, forking = 0, 
+  kernel_stack_page = 0, signal_stack = 1342627840, syscall = {id = 4, args = {
+      3, 134973440, 1024, 0, 1024}, have_result = 0, result = 50590720}, 
+  request = {op = 2, u = {exec = {ip = 1350467584, sp = 2952789424}, fork = {
+        regs = {1350467584, 2952789424, 0 &lt;repeats 15 times&gt;}, sigstack = 0, 
+        pid = 0}, switch_to = 0x507e8000, thread = {proc = 0x507e8000, 
+        arg = 0xaffffdb0, flags = 0, new_pid = 0}, input_request = {
+        op = 1350467584, fd = -1342177872, proc = 0, pid = 0}}}}
+</pre>
+</code></blockquote>
+<p></p>
+<p>The interesting things here are the fact that its .thread.syscall.id
+is __NR_write (see the big switch in arch/um/kernel/syscall_kern.c or the
+defines in include/asm-um/arch/unistd.h), and that it never returned.
+Also, its .request.op is OP_SWITCH (see arch/um/include/user_util.h).
+These mean that it went into a write, and, for some reason, called
+schedule().</p>
+<p>The fact that it never returned from write means that its stack
+should be fairly interesting. Its pid is 1980 (.thread.extern_pid).
+That process is being ptraced by the signal thread, so it must be
+detached before gdb can attach it:
+<blockquote><code>
+<pre>(gdb) call detach(1980)
+
+Program received signal SIGSEGV, Segmentation fault.
+&lt;function called from gdb&gt;
+The program being debugged stopped while in a function called from GDB.
+When the function (detach) is done executing, GDB will silently
+stop (instead of continuing to evaluate the expression containing
+the function call).
+(gdb) call detach(1980)
+$15 = 0
+</pre>
+</code></blockquote>
+<p></p>
+<p>The first detach segfaults for some reason, and the second one
+succeeds.</p>
+<p>Now I detach from the signal thread, attach to the fsck thread, and
+look at its stack:
+<blockquote><code>
+<pre>(gdb) det
+Detaching from program: /home/dike/linux/2.3.26/um/linux Pid 1935
+(gdb) att 1980
+Attaching to program `/home/dike/linux/2.3.26/um/linux', Pid 1980
+0x10070451 in __kill ()
+(gdb) bt
+#0  0x10070451 in __kill ()
+#1  0x10068ccd in usr1_pid (pid=1980) at process.c:30
+#2  0x1006a03f in _switch_to (prev=0x50072000, next=0x507e8000)
+    at process_kern.c:156
+#3  0x1006a052 in switch_to (prev=0x50072000, next=0x507e8000, last=0x50072000)
+    at process_kern.c:161
+#4  0x10001d12 in schedule () at sched.c:777
+#5  0x1006a744 in __down (sem=0x507d241c) at semaphore.c:71
+#6  0x1006aa10 in __down_failed () at semaphore.c:157
+#7  0x1006c5d8 in segv_handler (sc=0x5006e940) at trap_user.c:174
+#8  0x1006c5ec in kern_segv_handler (sig=11) at trap_user.c:182
+#9  &lt;signal handler called&gt;
+#10 0x10155404 in errno ()
+#11 0x1006c0aa in segv (address=1342179328, is_write=2) at trap_kern.c:50
+#12 0x1006c5d8 in segv_handler (sc=0x5006eaf8) at trap_user.c:174
+#13 0x1006c5ec in kern_segv_handler (sig=11) at trap_user.c:182
+#14 &lt;signal handler called&gt;
+#15 0xc0fd in ?? ()
+#16 0x10016647 in sys_write (fd=3, 
+    buf=0x80b8800 &lt;Address 0x80b8800 out of bounds&gt;, count=1024)
+    at read_write.c:159
+#17 0x1006d5b3 in execute_syscall (syscall=4, args=0x5006ef08)
+    at syscall_kern.c:254
+#18 0x1006af87 in really_do_syscall (sig=12) at syscall_user.c:35
+#19 &lt;signal handler called&gt;
+#20 0x400dc8b0 in ?? ()
+</pre>
+</code></blockquote>
+<p></p>
+<p>The interesting things here are :
+<ul>
+<li>There are two segfaults on this stack (frames 9 and 14)</li>
+<li>The first faulting address (frame 11) is 0x50000800
+<blockquote><code>
+<pre>(gdb) p (void *)1342179328
+$16 = (void *) 0x50000800
+</pre>
+</code></blockquote>
+</li>
+</ul>
+<p></p>
+<p>The initial faulting address is interesting because it is on the idle
+thread's stack. I had been seeing the idle thread segfault for no
+apparent reason, and the cause looked like stack corruption. In hopes
+of catching the culprit in the act, I had turned off all protections
+to that stack while the idle thread wasn't running. This apparently
+tripped that trap.</p>
+<p>However, the more immediate problem is that second segfault and I'm
+going to concentrate on that. First, I want to see where the fault
+happened, so I have to go look at the sigcontent struct in frame 8: </p>
+<p>
+<blockquote><code>
+<pre>(gdb) up
+#1  0x10068ccd in usr1_pid (pid=1980) at process.c:30
+30        kill(pid, SIGUSR1);
+(gdb) 
+#2  0x1006a03f in _switch_to (prev=0x50072000, next=0x507e8000)
+    at process_kern.c:156
+156       usr1_pid(getpid());
+(gdb) 
+#3  0x1006a052 in switch_to (prev=0x50072000, next=0x507e8000, last=0x50072000)
+    at process_kern.c:161
+161       _switch_to(prev, next);
+(gdb) 
+#4  0x10001d12 in schedule () at sched.c:777
+777             switch_to(prev, next, prev);
+(gdb) 
+#5  0x1006a744 in __down (sem=0x507d241c) at semaphore.c:71
+71                      schedule();
+(gdb) 
+#6  0x1006aa10 in __down_failed () at semaphore.c:157
+157     }
+(gdb) 
+#7  0x1006c5d8 in segv_handler (sc=0x5006e940) at trap_user.c:174
+174       segv(sc-&gt;cr2, sc-&gt;err &amp; 2);
+(gdb) 
+#8  0x1006c5ec in kern_segv_handler (sig=11) at trap_user.c:182
+182       segv_handler(sc);
+(gdb) p *sc
+Cannot access memory at address 0x0.
+</pre>
+</code></blockquote>
+<p></p>
+<p>That's not very useful, so I'll try a more manual method:
+<blockquote><code>
+<pre>(gdb) p *((struct sigcontext *) (&amp;sig + 1))
+$19 = {gs = 0, __gsh = 0, fs = 0, __fsh = 0, es = 43, __esh = 0, ds = 43, 
+  __dsh = 0, edi = 1342179328, esi = 1350378548, ebp = 1342630440, 
+  esp = 1342630420, ebx = 1348150624, edx = 1280, ecx = 0, eax = 0, 
+  trapno = 14, err = 4, eip = 268480945, cs = 35, __csh = 0, eflags = 66118, 
+  esp_at_signal = 1342630420, ss = 43, __ssh = 0, fpstate = 0x0, oldmask = 0, 
+  cr2 = 1280}
+</pre>
+</code></blockquote>
+<p></p>
+<p>The ip is in handle_mm_fault:
+<blockquote><code>
+<pre>(gdb) p (void *)268480945
+$20 = (void *) 0x1000b1b1
+(gdb) i sym $20
+handle_mm_fault + 57 in section .text
+</pre>
+</code></blockquote>
+<p></p>
+<p>Specifically, it's in pte_alloc:
+<blockquote><code>
+<pre>(gdb) i line *$20
+Line 124 of "/home/dike/linux/2.3.26/um/include/asm/pgalloc.h"
+   starts at address 0x1000b1b1 &lt;handle_mm_fault+57&gt;
+   and ends at 0x1000b1b7 &lt;handle_mm_fault+63&gt;.
+</pre>
+</code></blockquote>
+<p></p>
+<p>To find where in handle_mm_fault this is, I'll jump forward in the
+code until I see an address in that procedure:</p>
+<p>
+<blockquote><code>
+<pre>(gdb) i line *0x1000b1c0
+Line 126 of "/home/dike/linux/2.3.26/um/include/asm/pgalloc.h"
+   starts at address 0x1000b1b7 &lt;handle_mm_fault+63&gt;
+   and ends at 0x1000b1c3 &lt;handle_mm_fault+75&gt;.
+(gdb) i line *0x1000b1d0
+Line 131 of "/home/dike/linux/2.3.26/um/include/asm/pgalloc.h"
+   starts at address 0x1000b1d0 &lt;handle_mm_fault+88&gt;
+   and ends at 0x1000b1da &lt;handle_mm_fault+98&gt;.
+(gdb) i line *0x1000b1e0
+Line 61 of "/home/dike/linux/2.3.26/um/include/asm/pgalloc.h"
+   starts at address 0x1000b1da &lt;handle_mm_fault+98&gt;
+   and ends at 0x1000b1e1 &lt;handle_mm_fault+105&gt;.
+(gdb) i line *0x1000b1f0
+Line 134 of "/home/dike/linux/2.3.26/um/include/asm/pgalloc.h"
+   starts at address 0x1000b1f0 &lt;handle_mm_fault+120&gt;
+   and ends at 0x1000b200 &lt;handle_mm_fault+136&gt;.
+(gdb) i line *0x1000b200
+Line 135 of "/home/dike/linux/2.3.26/um/include/asm/pgalloc.h"
+   starts at address 0x1000b200 &lt;handle_mm_fault+136&gt;
+   and ends at 0x1000b208 &lt;handle_mm_fault+144&gt;.
+(gdb) i line *0x1000b210
+Line 139 of "/home/dike/linux/2.3.26/um/include/asm/pgalloc.h"
+   starts at address 0x1000b210 &lt;handle_mm_fault+152&gt;
+   and ends at 0x1000b219 &lt;handle_mm_fault+161&gt;.
+(gdb) i line *0x1000b220
+Line 1168 of "memory.c" starts at address 0x1000b21e &lt;handle_mm_fault+166&gt;
+   and ends at 0x1000b222 &lt;handle_mm_fault+170&gt;.
+</pre>
+</code></blockquote>
+<p></p>
+<p>Something is apparently wrong with the page tables or vma_structs,
+so lets go back to frame 11 and have a look at them:
+<blockquote><code>
+<pre>#11 0x1006c0aa in segv (address=1342179328, is_write=2) at trap_kern.c:50
+50        handle_mm_fault(current, vma, address, is_write);
+(gdb) call pgd_offset_proc(vma-&gt;vm_mm, address)
+$22 = (pgd_t *) 0x80a548c
+</pre>
+</code></blockquote>
+<p></p>
+<p>That's pretty bogus. Page tables aren't supposed to be in process
+text or data areas. Let's see what's in the vma:
+<blockquote><code>
+<pre>(gdb) p *vma
+$23 = {vm_mm = 0x507d2434, vm_start = 0, vm_end = 134512640, 
+  vm_next = 0x80a4f8c, vm_page_prot = {pgprot = 0}, vm_flags = 31200, 
+  vm_avl_height = 2058, vm_avl_left = 0x80a8c94, vm_avl_right = 0x80d1000, 
+  vm_next_share = 0xaffffdb0, vm_pprev_share = 0xaffffe63, 
+  vm_ops = 0xaffffe7a, vm_pgoff = 2952789626, vm_file = 0xafffffec, 
+  vm_private_data = 0x62}
+(gdb) p *vma.vm_mm
+$24 = {mmap = 0x507d2434, mmap_avl = 0x0, mmap_cache = 0x8048000, 
+  pgd = 0x80a4f8c, mm_users = {counter = 0}, mm_count = {counter = 134904288},
+  map_count = 134909076, mmap_sem = {count = {counter = 135073792}, 
+    sleepers = -1342177872, wait = {lock = &lt;optimized out or zero length&gt;, 
+      task_list = {next = 0xaffffe63, prev = 0xaffffe7a}, 
+      __magic = -1342177670, __creator = -1342177300}, __magic = 98}, 
+  page_table_lock = {}, context = 138, start_code = 0, end_code = 0, 
+  start_data = 0, end_data = 0, start_brk = 0, brk = 0, start_stack = 0, 
+  arg_start = 0, arg_end = 0, env_start = 0, env_end = 0, rss = 1350381536, 
+  total_vm = 0, locked_vm = 0, def_flags = 0, cpu_vm_mask = 0, swap_cnt = 0, 
+  swap_address = 0, segments = 0x0}
+</pre>
+</code></blockquote>
+<p></p>
+<p>This also pretty bogus. With all of the 0x80xxxxx and 0xaffffxxx
+addresses, this is looking like a stack was plonked down on top of
+these structures. Maybe it's a stack overflow from the next page:</p>
+<p>
+<blockquote><code>
+<pre>(gdb) p vma
+$25 = (struct vm_area_struct *) 0x507d2434
+</pre>
+</code></blockquote>
+<p></p>
+<p>That's towards the lower quarter of the page, so that would have to
+have been pretty heavy stack overflow:</p>
+<p>
+<blockquote><code>
+<pre>(gdb) x/100x $25
+0x507d2434:     0x507d2434      0x00000000      0x08048000      0x080a4f8c
+0x507d2444:     0x00000000      0x080a79e0      0x080a8c94      0x080d1000
+0x507d2454:     0xaffffdb0      0xaffffe63      0xaffffe7a      0xaffffe7a
+0x507d2464:     0xafffffec      0x00000062      0x0000008a      0x00000000
+0x507d2474:     0x00000000      0x00000000      0x00000000      0x00000000
+0x507d2484:     0x00000000      0x00000000      0x00000000      0x00000000
+0x507d2494:     0x00000000      0x00000000      0x507d2fe0      0x00000000
+0x507d24a4:     0x00000000      0x00000000      0x00000000      0x00000000
+0x507d24b4:     0x00000000      0x00000000      0x00000000      0x00000000
+0x507d24c4:     0x00000000      0x00000000      0x00000000      0x00000000
+0x507d24d4:     0x00000000      0x00000000      0x00000000      0x00000000
+0x507d24e4:     0x00000000      0x00000000      0x00000000      0x00000000
+0x507d24f4:     0x00000000      0x00000000      0x00000000      0x00000000
+0x507d2504:     0x00000000      0x00000000      0x00000000      0x00000000
+0x507d2514:     0x00000000      0x00000000      0x00000000      0x00000000
+0x507d2524:     0x00000000      0x00000000      0x00000000      0x00000000
+0x507d2534:     0x00000000      0x00000000      0x507d25dc      0x00000000
+0x507d2544:     0x00000000      0x00000000      0x00000000      0x00000000
+0x507d2554:     0x00000000      0x00000000      0x00000000      0x00000000
+0x507d2564:     0x00000000      0x00000000      0x00000000      0x00000000
+0x507d2574:     0x00000000      0x00000000      0x00000000      0x00000000
+0x507d2584:     0x00000000      0x00000000      0x00000000      0x00000000
+0x507d2594:     0x00000000      0x00000000      0x00000000      0x00000000
+0x507d25a4:     0x00000000      0x00000000      0x00000000      0x00000000
+0x507d25b4:     0x00000000      0x00000000      0x00000000      0x00000000
+</pre>
+</code></blockquote>
+<p></p>
+<p>It's not stack overflow. The only "stack-like" piece of this data
+is the vma_struct itself.</p>
+<p>At this point, I don't see any avenues to pursue, so I just have to
+admit that I have no idea what's going on. What I will do, though, is
+stick a trap on the segfault handler which will stop if it sees any
+writes to the idle thread's stack. That was the thing that happened
+first, and it may be that if I can catch it immediately, what's going
+on will be somewhat clearer.</p>
+<h2><a name=ss12.2>12.2</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc12.2>Episode 2: The case of the hung fsck</a>
+</h2>
+<p>After setting a trap in the SEGV handler for accesses to the signal
+thread's stack, I reran the kernel.</p>
+<p>fsck hung again, this time by hitting the trap:</p>
+<p>
+<blockquote><code>
+<pre>Setting hostname uml                            [ OK ]
+Checking root filesystem
+/dev/fhd0 contains a file system with errors, check forced.
+Error reading block 86894 (Attempt to read block from filesystem resulted in short read) while reading indirect blocks of inode 19780.  
+
+/dev/fhd0: UNEXPECTED INCONSISTENCY; RUN fsck MANUALLY.
+        (i.e., without -a or -p options)
+[ FAILED ]
+
+*** An error occurred during the file system check.
+*** Dropping you to a shell; the system will reboot
+*** when you leave the shell.
+Give root password for maintenance
+(or type Control-D for normal startup): 
+
+[root@uml /root]# fsck -y /dev/fhd0
+fsck -y /dev/fhd0
+Parallelizing fsck version 1.14 (9-Jan-1999)
+e2fsck 1.14, 9-Jan-1999 for EXT2 FS 0.5b, 95/08/09
+/dev/fhd0 contains a file system with errors, check forced.
+Pass 1: Checking inodes, blocks, and sizes
+Error reading block 86894 (Attempt to read block from filesystem resulted in short read) while reading indirect blocks of inode 19780.  Ignore error? yes
+
+Pass 2: Checking directory structure
+Error reading block 49405 (Attempt to read block from filesystem resulted in short read).  Ignore error? yes
+
+Directory inode 11858, block 0, offset 0: directory corrupted
+Salvage? yes
+
+Missing '.' in directory inode 11858.
+Fix? yes
+
+Missing '..' in directory inode 11858.
+Fix? yes
+
+Untested (4127) [100fe44c]: trap_kern.c line 31
+</pre>
+</code></blockquote>
+<p></p>
+<p>I need to get the signal thread to detach from pid 4127 so that I can
+attach to it with gdb. This is done by sending it a SIGUSR1, which is
+caught by the signal thread, which detaches the process:
+<blockquote><code>
+<pre>kill -USR1 4127
+</pre>
+</code></blockquote>
+<p></p>
+<p>Now I can run gdb on it:
+<blockquote><code>
+<pre>~/linux/2.3.26/um 1034: gdb linux
+GNU gdb 4.17.0.11 with Linux support
+Copyright 1998 Free Software Foundation, Inc.
+GDB is free software, covered by the GNU General Public License, and you are
+welcome to change it and/or distribute copies of it under certain conditions.
+Type "show copying" to see the conditions.
+There is absolutely no warranty for GDB.  Type "show warranty" for details.
+This GDB was configured as "i386-redhat-linux"...
+(gdb) att 4127
+Attaching to program `/home/dike/linux/2.3.26/um/linux', Pid 4127
+0x10075891 in __libc_nanosleep ()
+</pre>
+</code></blockquote>
+<p></p>
+<p>The backtrace shows that it was in a write and that the fault
+address (address in frame 3) is 0x50000800, which is right in the
+middle of the signal thread's stack page:
+<blockquote><code>
+<pre>(gdb) bt
+#0  0x10075891 in __libc_nanosleep ()
+#1  0x1007584d in __sleep (seconds=1000000)
+    at ../sysdeps/unix/sysv/linux/sleep.c:78
+#2  0x1006ce9a in stop () at user_util.c:191
+#3  0x1006bf88 in segv (address=1342179328, is_write=2) at trap_kern.c:31
+#4  0x1006c628 in segv_handler (sc=0x5006eaf8) at trap_user.c:174
+#5  0x1006c63c in kern_segv_handler (sig=11) at trap_user.c:182
+#6  &lt;signal handler called&gt;
+#7  0xc0fd in ?? ()
+#8  0x10016647 in sys_write (fd=3, buf=0x80b8800 "R.", count=1024)
+    at read_write.c:159
+#9  0x1006d603 in execute_syscall (syscall=4, args=0x5006ef08)
+    at syscall_kern.c:254
+#10 0x1006af87 in really_do_syscall (sig=12) at syscall_user.c:35
+#11 &lt;signal handler called&gt;
+#12 0x400dc8b0 in ?? ()
+#13 &lt;signal handler called&gt;
+#14 0x400dc8b0 in ?? ()
+#15 0x80545fd in ?? ()
+#16 0x804daae in ?? ()
+#17 0x8054334 in ?? ()
+#18 0x804d23e in ?? ()
+#19 0x8049632 in ?? ()
+#20 0x80491d2 in ?? ()
+#21 0x80596b5 in ?? ()
+(gdb) p (void *)1342179328
+$3 = (void *) 0x50000800
+</pre>
+</code></blockquote>
+<p></p>
+<p>Going up the stack to the segv_handler frame and looking at where
+in the code the access happened shows that it happened near line 110
+of block_dev.c:
+<blockquote><code>
+<pre>(gdb) up
+#1  0x1007584d in __sleep (seconds=1000000)
+    at ../sysdeps/unix/sysv/linux/sleep.c:78
+../sysdeps/unix/sysv/linux/sleep.c:78: No such file or directory.
+(gdb) 
+#2  0x1006ce9a in stop () at user_util.c:191
+191       while(1) sleep(1000000);
+(gdb) 
+#3  0x1006bf88 in segv (address=1342179328, is_write=2) at trap_kern.c:31
+31          KERN_UNTESTED();
+(gdb) 
+#4  0x1006c628 in segv_handler (sc=0x5006eaf8) at trap_user.c:174
+174       segv(sc-&gt;cr2, sc-&gt;err &amp; 2);
+(gdb) p *sc
+$1 = {gs = 0, __gsh = 0, fs = 0, __fsh = 0, es = 43, __esh = 0, ds = 43, 
+  __dsh = 0, edi = 1342179328, esi = 134973440, ebp = 1342631484, 
+  esp = 1342630864, ebx = 256, edx = 0, ecx = 256, eax = 1024, trapno = 14, 
+  err = 6, eip = 268550834, cs = 35, __csh = 0, eflags = 66070, 
+  esp_at_signal = 1342630864, ss = 43, __ssh = 0, fpstate = 0x0, oldmask = 0, 
+  cr2 = 1342179328}
+(gdb) p (void *)268550834
+$2 = (void *) 0x1001c2b2
+(gdb) i sym $2
+block_write + 1090 in section .text
+(gdb) i line *$2
+Line 209 of "/home/dike/linux/2.3.26/um/include/asm/arch/string.h"
+   starts at address 0x1001c2a1 &lt;block_write+1073&gt;
+   and ends at 0x1001c2bf &lt;block_write+1103&gt;.
+(gdb) i line *0x1001c2c0
+Line 110 of "block_dev.c" starts at address 0x1001c2bf &lt;block_write+1103&gt;
+   and ends at 0x1001c2e3 &lt;block_write+1139&gt;.
+</pre>
+</code></blockquote>
+<p></p>
+<p>Looking at the source shows that the fault happened during a
+call to copy_to_user to copy the data into the kernel:
+<blockquote><code>
+<pre>107             count -= chars;
+108             copy_from_user(p,buf,chars);
+109             p += chars;
+110             buf += chars;
+</pre>
+</code></blockquote>
+<p></p>
+<p>p is the pointer which must contain 0x50000800, since buf contains
+0x80b8800 (frame 8 above). It is defined as:
+<blockquote><code>
+<pre>                p = offset + bh-&gt;b_data;
+</pre>
+</code></blockquote>
+<p></p>
+<p>I need to figure out what bh is, and it just so happens that bh is
+passed as an argument to mark_buffer_uptodate and mark_buffer_dirty a
+few lines later, so I do a little disassembly:</p>
+<p>
+<blockquote><code>
+<pre>(gdb) disas 0x1001c2bf 0x1001c2e0
+Dump of assembler code from 0x1001c2bf to 0x1001c2d0:
+0x1001c2bf &lt;block_write+1103&gt;:  addl   %eax,0xc(%ebp)
+0x1001c2c2 &lt;block_write+1106&gt;:  movl   0xfffffdd4(%ebp),%edx
+0x1001c2c8 &lt;block_write+1112&gt;:  btsl   $0x0,0x18(%edx)
+0x1001c2cd &lt;block_write+1117&gt;:  btsl   $0x1,0x18(%edx)
+0x1001c2d2 &lt;block_write+1122&gt;:  sbbl   %ecx,%ecx
+0x1001c2d4 &lt;block_write+1124&gt;:  testl  %ecx,%ecx
+0x1001c2d6 &lt;block_write+1126&gt;:  jne    0x1001c2e3 &lt;block_write+1139&gt;
+0x1001c2d8 &lt;block_write+1128&gt;:  pushl  $0x0
+0x1001c2da &lt;block_write+1130&gt;:  pushl  %edx
+0x1001c2db &lt;block_write+1131&gt;:  call   0x1001819c &lt;__mark_buffer_dirty&gt;
+End of assembler dump.
+</pre>
+</code></blockquote>
+<p></p>
+<p>At that point, bh is in %edx (address 0x1001c2da), which is
+calculated at 0x1001c2c2 as %ebp + 0xfffffdd4, so I figure exactly
+what that is, taking %ebp from the sigcontext_struct above:
+<blockquote><code>
+<pre>(gdb) p (void *)1342631484
+$5 = (void *) 0x5006ee3c
+(gdb) p 0x5006ee3c+0xfffffdd4
+$6 = 1342630928
+(gdb) p (void *)$6
+$7 = (void *) 0x5006ec10
+(gdb) p *((void **)$7)
+$8 = (void *) 0x50100200
+</pre>
+</code></blockquote>
+<p></p>
+<p>Now, I look at the structure to see what's in it, and particularly,
+what its b_data field contains:
+<blockquote><code>
+<pre>(gdb) p *((struct buffer_head *)0x50100200)
+$13 = {b_next = 0x50289380, b_blocknr = 49405, b_size = 1024, b_list = 0, 
+  b_dev = 15872, b_count = {counter = 1}, b_rdev = 15872, b_state = 24, 
+  b_flushtime = 0, b_next_free = 0x501001a0, b_prev_free = 0x50100260, 
+  b_this_page = 0x501001a0, b_reqnext = 0x0, b_pprev = 0x507fcf58, 
+  b_data = 0x50000800 "", b_page = 0x50004000, 
+  b_end_io = 0x10017f60 &lt;end_buffer_io_sync&gt;, b_dev_id = 0x0, 
+  b_rsector = 98810, b_wait = {lock = &lt;optimized out or zero length&gt;, 
+    task_list = {next = 0x50100248, prev = 0x50100248}, __magic = 1343226448, 
+    __creator = 0}, b_kiobuf = 0x0}
+</pre>
+</code></blockquote>
+<p></p>
+<p>The b_data field is indeed 0x50000800, so the question becomes how
+that happened. The rest of the structure looks fine, so this probably is
+not a case of data corruption. It happened on purpose somehow.</p>
+<p>The b_page field is a pointer to the page_struct representing the
+0x50000000 page. Looking at it shows the kernel's idea of the state
+of that page:</p>
+<p>
+<blockquote><code>
+<pre>(gdb) p *$13.b_page
+$17 = {list = {next = 0x50004a5c, prev = 0x100c5174}, mapping = 0x0, 
+  index = 0, next_hash = 0x0, count = {counter = 1}, flags = 132, lru = {
+    next = 0x50008460, prev = 0x50019350}, wait = {
+    lock = &lt;optimized out or zero length&gt;, task_list = {next = 0x50004024, 
+      prev = 0x50004024}, __magic = 1342193708, __creator = 0}, 
+  pprev_hash = 0x0, buffers = 0x501002c0, virtual = 1342177280, 
+  zone = 0x100c5160}
+</pre>
+</code></blockquote>
+<p></p>
+<p>Some sanity-checking: the virtual field shows the "virtual" address
+of this page, which in this kernel is the same as its "physical"
+address, and the page_struct itself should be mem_map[0], since it
+represents the first page of memory:</p>
+<p>
+<blockquote><code>
+<pre>(gdb) p (void *)1342177280
+$18 = (void *) 0x50000000
+(gdb) p mem_map
+$19 = (mem_map_t *) 0x50004000
+</pre>
+</code></blockquote>
+<p></p>
+<p>These check out fine.</p>
+<p>Now to check out the page_struct itself. In particular, the flags
+field shows whether the page is considered free or not:
+<blockquote><code>
+<pre>(gdb) p (void *)132
+$21 = (void *) 0x84
+</pre>
+</code></blockquote>
+<p></p>
+<p>The "reserved" bit is the high bit, which is definitely not set, so
+the kernel considers the signal stack page to be free and available to
+be used.</p>
+<p>At this point, I jump to conclusions and start looking at my early
+boot code, because that's where that page is supposed to be reserved.</p>
+<p>In my setup_arch procedure, I have the following code which looks
+just fine:</p>
+<p>
+<blockquote><code>
+<pre>bootmap_size = init_bootmem(start_pfn, end_pfn - start_pfn);
+free_bootmem(__pa(low_physmem) + bootmap_size, high_physmem - low_physmem);
+</pre>
+</code></blockquote>
+<p></p>
+<p>Two stack pages have already been allocated, and low_physmem points
+to the third page, which is the beginning of free memory.</p>
+<p>The init_bootmem call declares the entire memory to the boot memory
+manager, which marks it all reserved. The free_bootmem call frees up
+all of it, except for the first two pages. This looks correct to me.</p>
+<p>So, I decide to see init_bootmem run and make sure that it is
+marking those first two pages as reserved. I never get that far.</p>
+<p>Stepping into init_bootmem, and looking at bootmem_map before
+looking at what it contains shows the following:</p>
+<p>
+<blockquote><code>
+<pre>(gdb) p bootmem_map
+$3 = (void *) 0x50000000
+</pre>
+</code></blockquote>
+<p></p>
+<p>Aha! The light dawns. That first page is doing double duty as a
+stack and as the boot memory map. The last thing that the boot memory
+manager does is to free the pages used by its memory map, so this page is
+getting freed even its marked as reserved.</p>
+<p>The fix was to initialize the boot memory manager before allocating
+those two stack pages, and then allocate them through the boot memory
+manager. After doing this, and fixing a couple of subsequent buglets,
+the stack corruption problem disappeared.</p>
+<hr>
+<a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-13.html>Next</a>
+<a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-11.html>Previous</a>
+<a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc12>Contents</a>
+<div class="youdao_tans_modal sf-hidden"></div>

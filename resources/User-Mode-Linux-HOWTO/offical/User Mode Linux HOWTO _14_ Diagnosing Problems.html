@@ -1,0 +1,169 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 3.2 Final//EN"> <html><!--
+ Page saved with SingleFile 
+ url: http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-14.html 
+ saved date: Thu Jun 17 2021 15:30:35 GMT+0800 (China Standard Time)
+--><meta charset=utf-8>
+<meta name=GENERATOR content="LinuxDoc-Tools 0.9.21">
+<title>User Mode Linux HOWTO : Diagnosing Problems</title>
+<link href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-15.html rel=next>
+<link href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-13.html rel=previous>
+<link href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc14 rel=contents>
+<style>h2{font-size:16px;margin-top:16px}.youdao_tans_modal a[href^='#'],a:not([href]),a[href='']{color:#434343}</style><link type=image/x-icon rel="shortcut icon" href="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="><style>.sf-hidden{display:none!important}</style><link rel=canonical href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-14.html></head>
+<body>
+<a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-15.html>Next</a>
+<a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-13.html>Previous</a>
+<a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc14>Contents</a>
+<hr>
+<h2><a name=trouble></a> <a name=s14>14.</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc14>Diagnosing Problems</a></h2>
+<p> 
+If you get UML to crash, hang, or otherwise misbehave, you should
+report this on one of the project mailing lists, either the 
+developer list - user-mode-linux-devel at lists dot sourceforge dot
+net (subscription info) or the user list -
+user-mode-linux-user at lists dot sourceforge dot net 
+(subscription info). When you do, it is
+likely that I will want more information. So, it would be helpful to
+read the stuff below, do whatever is applicable in your case, and
+report the results to the list.</p>
+<p> 
+For any diagnosis, you're going to need to build a debugging kernel.
+The binaries from this site aren't debuggable. If you haven't done
+this before, read about 
+<a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-2.html#compile>Compiling the kernel and modules</a> and
+<a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-11.html#debugging>Kernel debugging</a> UML first. </p>
+<h2><a name=ss14.1>14.1</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc14.1>Case 1 : Normal kernel panics</a>
+</h2>
+<p>The most common case is for a normal thread to panic. To debug this,
+you will need to run it under the debugger (add 'debug' to the command
+line). An xterm will start up with gdb running inside it. Continue
+it when it stops in start_kernel and make it crash. Now ^C gdb and
+'bt'. I'm going to want to see the resulting stack trace. </p>
+<p> 
+If the panic was a "Kernel mode fault", then there will be a segv
+frame on the stack and I'm going to want some more information. The
+stack might look something like this:
+<blockquote><code>
+<pre>(UML gdb)  backtrace
+#0  0x1009bf76 in __sigprocmask (how=1, set=0x5f347940, oset=0x0)
+    at ../sysdeps/unix/sysv/linux/sigprocmask.c:49
+#1  0x10091411 in change_sig (signal=10, on=1) at process.c:218
+#2  0x10094785 in timer_handler (sig=26) at time_kern.c:32
+#3  0x1009bf38 in __restore ()
+    at ../sysdeps/unix/sysv/linux/i386/sigaction.c:125
+#4  0x1009534c in segv (address=8, ip=268849158, is_write=2, is_user=0)
+    at trap_kern.c:66
+#5  0x10095c04 in segv_handler (sig=11) at trap_user.c:285
+#6  0x1009bf38 in __restore ()
+</pre>
+</code></blockquote>
+I'm going to want to see the symbol and line information for the value
+of ip in the segv frame. In this case, you would do the following:
+<blockquote><code>
+<pre>(UML gdb)  i sym 268849158
+</pre>
+</code></blockquote>
+and
+<blockquote><code>
+<pre>(UML gdb)  i line *268849158
+</pre>
+</code></blockquote>
+The reason for this is the __restore frame right above the
+segv_handler frame is hiding the frame that actually segfaulted. So,
+I have to get that information from the faulting ip.<p></p>
+<h2><a name=ss14.2>14.2</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc14.2>Case 2 : Tracing thread panics</a>
+</h2>
+<p>The less common and more painful case is when the tracing thread
+panics. In this case, the kernel debugger will be useless because it
+needs a healthy tracing thread in order to work. The first thing to
+do is get a backtrace from the tracing thread. This is done by
+figuring out what its pid is, firing up gdb, and attaching it to that
+pid. You can figure out the tracing thread pid by looking at the
+first line of the console output, which will look like this:
+<blockquote><code>
+<pre>tracing thread pid = 15851
+</pre>
+</code></blockquote>
+or by running ps on the host and finding the line that looks like
+this:
+<blockquote><code>
+<pre>jdike 15851 4.5 0.4 132568 1104 pts/0 S 21:34 0:05 ./linux [(tracing thread)]
+</pre>
+</code></blockquote>
+If the panic was 'segfault in signals', then follow the instructions
+above for collecting information about the location of the seg fault.<p></p>
+<p> 
+If the tracing thread flaked out all by itself, then send that
+backtrace in and wait for our crack debugging team to fix the
+problem. </p>
+<h2><a name=ss14.3>14.3</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc14.3>Case 3 : Tracing thread panics caused by other threads</a>
+</h2>
+<p>However, there are cases where the misbehavior of another
+thread caused the problem. The most common panic of this type is:
+<blockquote><code>
+<pre>wait_for_stop failed to wait for  &lt;pid&gt;  to stop with  &lt;signal number&gt; 
+</pre>
+</code></blockquote>
+In this case, you'll need to get a backtrace from the process
+mentioned in the panic, which is complicated by the fact that the
+kernel debugger is defunct and without some fancy footwork, another
+gdb can't attach to it. So, this is how the fancy footwork goes:<p></p>
+<p>In a shell:
+<blockquote><code>
+<pre>host% kill -STOP pid
+</pre>
+</code></blockquote>
+Run gdb on the tracing thread as described in case 2 and do:
+<blockquote><code>
+<pre>(host gdb)  call detach(pid)
+</pre>
+</code></blockquote>
+If you get a segfault, do it again. It always works the second
+time.<p></p>
+<p>Detach from the tracing thread and attach to that other thread:
+<blockquote><code>
+<pre>(host gdb)  detach
+</pre>
+</code></blockquote>
+<blockquote><code>
+<pre>(host gdb)  attach pid
+</pre>
+</code></blockquote>
+If gdb hangs when attaching to that process, go back to a shell and
+do:
+<blockquote><code>
+<pre>host% 
+kill -CONT pid
+</pre>
+</code></blockquote>
+And then get the backtrace:
+<blockquote><code>
+<pre>(host gdb)  backtrace
+</pre>
+</code></blockquote>
+<p></p>
+<h2><a name=ss14.4>14.4</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc14.4>Case 4 : Hangs</a>
+</h2>
+<p>Hangs seem to be fairly rare, but they sometimes happen. When a hang
+happens, we need a backtrace from the offending process. Run the
+kernel debugger as described in case 1 and get a backtrace. If the
+current process is not the idle thread, then send in the backtrace.
+You can tell that it's the idle thread if the stack looks like this:
+<blockquote><code>
+<pre>#0  0x100b1401 in __libc_nanosleep ()
+#1  0x100a2885 in idle_sleep (secs=10) at time.c:122
+#2  0x100a546f in do_idle () at process_kern.c:445
+#3  0x100a5508 in cpu_idle () at process_kern.c:471
+#4  0x100ec18f in start_kernel () at init/main.c:592
+#5  0x100a3e10 in start_kernel_proc (unused=0x0) at um_arch.c:71
+#6  0x100a383f in signal_tramp (arg=0x100a3dd8) at trap_user.c:50
+</pre>
+</code></blockquote>
+If this is the case, then some other process is at fault, and went to
+sleep when it shouldn't have. Run ps on the host and figure out which
+process should not have gone to sleep and stayed asleep. Then attach
+to it with gdb and get a backtrace as described in case 3.<p></p>
+<hr>
+<a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-15.html>Next</a>
+<a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-13.html>Previous</a>
+<a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc14>Contents</a>
+<div class="youdao_tans_modal sf-hidden"></div>

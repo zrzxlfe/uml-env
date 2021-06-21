@@ -1,0 +1,102 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 3.2 Final//EN"> <html><!--
+ Page saved with SingleFile 
+ url: http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-3.html 
+ saved date: Thu Jun 17 2021 15:25:23 GMT+0800 (China Standard Time)
+--><meta charset=utf-8>
+<meta name=GENERATOR content="LinuxDoc-Tools 0.9.21">
+<title>User Mode Linux HOWTO : Running UML and logging in</title>
+<link href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-4.html rel=next>
+<link href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-2.html rel=previous>
+<link href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc3 rel=contents>
+<style>h2{font-size:16px;margin-top:16px}.youdao_tans_modal a[href^='#'],a:not([href]),a[href='']{color:#434343}</style><link type=image/x-icon rel="shortcut icon" href="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="><style>.sf-hidden{display:none!important}</style><link rel=canonical href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-3.html></head>
+<body>
+<a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-4.html>Next</a>
+<a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-2.html>Previous</a>
+<a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc3>Contents</a>
+<hr>
+<h2><a name=run></a> <a name=s3>3.</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc3>Running UML and logging in</a></h2>
+<p> </p>
+<h2><a name=ss3.1>3.1</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc3.1>Running UML</a>
+</h2>
+<p>It runs on 2.2.15 or later, and all 2.4 and 2.6 kernels.</p>
+<p> 
+Booting UML is straightforward. Simply run 'linux': it will try to
+mount the file `root_fs' in the current directory. You do not need to
+run it as root. If your root filesystem is not named `root_fs', then
+you need to put a `ubd0=root_fs_whatever' switch on the linux command
+line.</p>
+<p> 
+You will need a filesystem to boot UML from. There are a number
+available for download from 
+<a href=http://user-mode-linux.sourceforge.net/dl-sf.html>here </a> . There are also 
+<a href=http://user-mode-linux.sourceforge.net/fs_making.html>several tools</a> which can be used to generate UML-compatible filesystem
+images from media.</p>
+<p> 
+The kernel will boot up and present you with a login prompt.</p>
+<p> 
+Note: If the host is configured with a 2G/2G address space split
+rather than the usual 3G/1G split, then the packaged UML binaries will
+not run. They will immediately segfault. See 
+<a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-4.html#2G-2G>UML on 2G/2G hosts</a> for the scoop on
+running UML on your system.</p>
+<h2><a name=ss3.2>3.2</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc3.2>Logging in</a>
+</h2>
+<p> The prepackaged filesystems have a root account with
+password 'root' and a user account with password 'user'. The
+login banner will generally tell you how to log in. So, you log in
+and you will find yourself inside a little virtual machine. Our
+filesystems have a variety of commands and utilities installed (and it
+is fairly easy to add more), so you will have a lot of tools with
+which to poke around the system. </p>
+<p> There are a couple of other ways to log in:
+<ul>
+<li>On a virtual console
+<p> 
+Each virtual console that is configured (i.e. the
+device exists in /dev and /etc/inittab runs a getty on it) will come up
+in its own xterm. If you get tired of the xterms, read 
+<a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-5.html#input>Setting up serial lines and consoles</a> to see how to
+attach the consoles to something else, like host ptys.</p>
+</li>
+<li>Over the serial line
+<p> 
+In the boot output, find a line that looks like:</p>
+<p>
+<blockquote><code>
+<pre>serial line 0 assigned pty /dev/ptyp1
+</pre>
+</code></blockquote>
+<p></p>
+<p>Attach your favorite terminal program to the corresponding
+tty. I.e. for minicom, the command would be 
+<blockquote><code>
+<pre>host% minicom -o -p /dev/ttyp1
+</pre>
+</code></blockquote>
+<p></p>
+</li>
+<li>Over the net
+<p> 
+If the network is running, then you can telnet to the virtual machine
+and log in to it. See 
+<a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-6.html#networking>Setting up the network</a> to learn about setting up a virtual network.</p>
+</li>
+</ul>
+<p></p>
+<p>When you're done using it, run halt, and the kernel
+will bring itself down and the process will exit.</p>
+<h2><a name=ss3.3>3.3</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc3.3>Examples</a>
+</h2>
+<p>Here are some examples of UML in action:
+<ul>
+<li> 
+<a href=http://user-mode-linux.sourceforge.net/login.html>A login session</a> </li>
+<li> 
+<a href=http://user-mode-linux.sourceforge.net/net.html>A virtual network</a> </li>
+</ul>
+<p></p>
+<hr>
+<a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-4.html>Next</a>
+<a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-2.html>Previous</a>
+<a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc3>Contents</a>
+<div class="youdao_tans_modal sf-hidden"></div>

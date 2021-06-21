@@ -1,0 +1,35 @@
+# Version 1.0 (2021-06-19)
+# 1.基于镜像 http://cdimage.ubuntu.com/ubuntu-base/releases/20.04/release/ubuntu-base-20.04.2-base-amd64.tar.gz
+# 2.安装必要的基础工具（支持 sudo ping ifconfig wget nano git vi 等命令），支持命令行 tab 补全
+# 3.配置用户 uml, 并支持其无密码使用 sudo (ssh-akspass用于 sudo 需要密码时请求密码输入)
+# 4.放置 uml_init.sh tini-0.19.0 到根目录，并配置镜像网络及其DNS，用于通过 slirp 或 uml-utilities 访问公网
+# 5.静态编译 busybox-1.33.1, 将其放置到 /usr/bin/busybox-1.33.1 并使用其中的若干命令如下
+#-------------------------------------------------------------------------------------------------------------
+apt update
+apt upgrade
+
+apt install rsyslog sudo ssh-askpass
+apt install iputils-ping net-tools wget
+apt install nano git vim bash-completion
+
+echo "uml" > /etc/hostname
+echo "127.0.0.1 localhost uml" > /etc/hosts
+useradd uml -s '/bin/bash' -mr -G adm,sudo
+passwd uml << EOF
+uml
+uml
+EOF
+
+echo "uml ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+
+cat > /etc/resolv.conf << EOF
+nameserver 114.114.114.114
+nameserver 8.8.8.8
+EOF
+
+apt clean
+apt autoremove --purge
+
+ln -sf /usr/bin/busybox-1.33.1 /bin/sh
+ln -sf /usr/bin/busybox-1.33.1 /sbin/init
+ln -sf /usr/bin/busybox-1.33.1 /usr/sbin/halt

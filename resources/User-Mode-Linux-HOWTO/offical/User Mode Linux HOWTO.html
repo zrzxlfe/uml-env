@@ -1,0 +1,174 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 3.2 Final//EN"> <html style><!--
+ Page saved with SingleFile 
+ url: http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html 
+ saved date: Thu Jun 17 2021 15:22:56 GMT+0800 (China Standard Time)
+--><meta charset=utf-8>
+<meta name=GENERATOR content="LinuxDoc-Tools 0.9.21">
+<title>User Mode Linux HOWTO </title>
+<link href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-1.html rel=next>
+<style>.youdao_tans_modal{position:fixed;background-color:#fff;max-width:400px;max-height:400px;overflow-y:auto;padding:16px;border-radius:2px;border:1px solid #35a1d4;font-size:12px;line-height:1.6;color:#434343;box-shadow:0 3px 6px -4px rgba(0,0,0,.12),0 6px 16px 0 rgba(0,0,0,.08),0 9px 28px 8px rgba(0,0,0,.05);z-index:9999999999;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,PingFang SC,Hiragino Sans GB,Microsoft YaHei,Helvetica Neue,Helvetica,Arial,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol}h2{font-size:16px;margin-top:16px}.youdao_tans_modal a[href^='#'],a:not([href]),a[href='']{color:#434343}</style><link type=image/x-icon rel="shortcut icon" href="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="><link rel=canonical href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html></head>
+<body>
+<a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-1.html>Next</a>
+Previous
+Contents
+<hr>
+<h1>User Mode Linux HOWTO </h1>
+<h2>User Mode Linux Core Team </h2>Fri Mar 7 11:53:53 EST 2008
+<hr>
+<em> This document describes the use and abuse of Jeff Dike's User Mode Linux: a port of the Linux kernel as a normal Intel Linux process. </em>
+<hr>
+<p>
+<h2><a name=toc1>1.</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-1.html>Introduction</a></h2>
+<ul>
+<li><a name=toc1.1>1.1</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-1.html#ss1.1>What is User Mode Linux?</a>
+<li><a name=toc1.2>1.2</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-1.html#ss1.2>How is User Mode Linux Different?</a>
+<li><a name=toc1.3>1.3</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-1.html#ss1.3>How does UML Work?</a>
+<li><a name=toc1.4>1.4</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-1.html#ss1.4>Why Would I Want UML?</a>
+</ul>
+<p>
+<h2><a name=toc2>2.</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-2.html>Compiling the kernel and modules</a></h2>
+<ul>
+<li><a name=toc2.1>2.1</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-2.html#ss2.1>Compiling the kernel</a>
+<li><a name=toc2.2>2.2</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-2.html#ss2.2>Compiling and installing kernel modules</a>
+<li><a name=toc2.3>2.3</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-2.html#ss2.3>Compiling and installing uml_utilities</a>
+</ul>
+<p>
+<h2><a name=toc3>3.</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-3.html>Running UML and logging in</a></h2>
+<ul>
+<li><a name=toc3.1>3.1</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-3.html#ss3.1>Running UML</a>
+<li><a name=toc3.2>3.2</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-3.html#ss3.2>Logging in</a>
+<li><a name=toc3.3>3.3</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-3.html#ss3.3>Examples</a>
+</ul>
+<p>
+<h2><a name=toc4>4.</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-4.html>UML on 2G/2G hosts</a></h2>
+<ul>
+<li><a name=toc4.1>4.1</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-4.html#ss4.1>Introduction</a>
+<li><a name=toc4.2>4.2</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-4.html#ss4.2>The problem</a>
+<li><a name=toc4.3>4.3</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-4.html#ss4.3>The solution</a>
+</ul>
+<p>
+<h2><a name=toc5>5.</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-5.html>Setting up serial lines and consoles</a></h2>
+<ul>
+<li><a name=toc5.1>5.1</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-5.html#ss5.1>Specifying the device</a>
+<li><a name=toc5.2>5.2</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-5.html#ss5.2>Specifying the channel</a>
+<li><a name=toc5.3>5.3</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-5.html#ss5.3>Examples</a>
+</ul>
+<p>
+<h2><a name=toc6>6.</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-6.html>Setting up the network</a></h2>
+<ul>
+<li><a name=toc6.1>6.1</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-6.html#ss6.1>General setup</a>
+<li><a name=toc6.2>6.2</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-6.html#ss6.2>Userspace daemons</a>
+<li><a name=toc6.3>6.3</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-6.html#ss6.3>Specifying ethernet addresses</a>
+<li><a name=toc6.4>6.4</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-6.html#ss6.4>UML interface setup</a>
+<li><a name=toc6.5>6.5</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-6.html#ss6.5>Multicast</a>
+<li><a name=toc6.6>6.6</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-6.html#ss6.6>TUN/TAP with the uml_net helper</a>
+<li><a name=toc6.7>6.7</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-6.html#ss6.7>TUN/TAP with a preconfigured tap device</a>
+<li><a name=toc6.8>6.8</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-6.html#ss6.8>Ethertap</a>
+<li><a name=toc6.9>6.9</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-6.html#ss6.9>The switch daemon</a>
+<li><a name=toc6.10>6.10</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-6.html#ss6.10>Slip</a>
+<li><a name=toc6.11>6.11</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-6.html#ss6.11>Slirp</a>
+<li><a name=toc6.12>6.12</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-6.html#ss6.12>pcap</a>
+<li><a name=toc6.13>6.13</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-6.html#ss6.13>Setting up the host yourself</a>
+</ul>
+<p>
+<h2><a name=toc7>7.</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-7.html>Sharing Filesystems between Virtual Machines</a></h2>
+<ul>
+<li><a name=toc7.1>7.1</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-7.html#ss7.1>A warning</a>
+<li><a name=toc7.2>7.2</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-7.html#ss7.2>Using layered block devices</a>
+<li><a name=toc7.3>7.3</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-7.html#ss7.3>Note!</a>
+<li><a name=toc7.4>7.4</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-7.html#ss7.4>Another warning</a>
+<li><a name=toc7.5>7.5</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-7.html#ss7.5>Moving a backing file</a>
+<li><a name=toc7.6>7.6</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-7.html#ss7.6>uml_moo : Merging a COW file with its backing file</a>
+<li><a name=toc7.7>7.7</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-7.html#ss7.7>uml_mkcow : Create a new COW file</a>
+</ul>
+<p>
+<h2><a name=toc8>8.</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-8.html>Creating filesystems</a></h2>
+<ul>
+<li><a name=toc8.1>8.1</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-8.html#ss8.1>Create the filesystem file</a>
+<li><a name=toc8.2>8.2</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-8.html#ss8.2>Assign the file to a UML device</a>
+<li><a name=toc8.3>8.3</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-8.html#ss8.3>Creating and mounting the filesystem</a>
+</ul>
+<p>
+<h2><a name=toc9>9.</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-9.html>Host file access</a></h2>
+<ul>
+<li><a name=toc9.1>9.1</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-9.html#ss9.1>Using hostfs</a>
+<li><a name=toc9.2>9.2</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-9.html#ss9.2>hostfs command line options</a>
+<li><a name=toc9.3>9.3</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-9.html#ss9.3>hostfs as the root filesystem</a>
+<li><a name=toc9.4>9.4</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-9.html#ss9.4>Building hostfs</a>
+</ul>
+<p>
+<h2><a name=toc10>10.</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-10.html>The Management Console</a></h2>
+<ul>
+<li><a name=toc10.1>10.1</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-10.html#ss10.1>version</a>
+<li><a name=toc10.2>10.2</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-10.html#ss10.2>halt and reboot</a>
+<li><a name=toc10.3>10.3</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-10.html#ss10.3>config</a>
+<li><a name=toc10.4>10.4</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-10.html#ss10.4>remove</a>
+<li><a name=toc10.5>10.5</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-10.html#ss10.5>sysrq</a>
+<li><a name=toc10.6>10.6</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-10.html#ss10.6>help</a>
+<li><a name=toc10.7>10.7</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-10.html#ss10.7>cad</a>
+<li><a name=toc10.8>10.8</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-10.html#ss10.8>stop</a>
+<li><a name=toc10.9>10.9</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-10.html#ss10.9>go</a>
+<li><a name=toc10.10>10.10</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-10.html#ss10.10>log</a>
+<li><a name=toc10.11>10.11</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-10.html#ss10.11>proc</a>
+<li><a name=toc10.12>10.12</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-10.html#ss10.12>Making online backups</a>
+<li><a name=toc10.13>10.13</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-10.html#ss10.13>Event notification</a>
+</ul>
+<p>
+<h2><a name=toc11>11.</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-11.html>Kernel debugging</a></h2>
+<ul>
+<li><a name=toc11.1>11.1</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-11.html#ss11.1>Starting the kernel under gdb</a>
+<li><a name=toc11.2>11.2</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-11.html#ss11.2>Examining sleeping processes</a>
+<li><a name=toc11.3>11.3</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-11.html#ss11.3>Running ddd on UML</a>
+<li><a name=toc11.4>11.4</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-11.html#ss11.4>Debugging modules</a>
+<li><a name=toc11.5>11.5</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-11.html#ss11.5>Attaching gdb to the kernel</a>
+<li><a name=toc11.6>11.6</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-11.html#ss11.6>Using alternate debuggers</a>
+</ul>
+<p>
+<h2><a name=toc12>12.</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-12.html>Kernel debugging examples</a></h2>
+<ul>
+<li><a name=toc12.1>12.1</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-12.html#ss12.1>The case of the hung fsck</a>
+<li><a name=toc12.2>12.2</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-12.html#ss12.2>Episode 2: The case of the hung fsck</a>
+</ul>
+<p>
+<h2><a name=toc13>13.</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-13.html>What to do when UML doesn't work</a></h2>
+<ul>
+<li><a name=toc13.1>13.1</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-13.html#ss13.1>Strange compilation errors when you build from source</a>
+<li><a name=toc13.2>13.2</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-13.html#ss13.2>UML hangs on boot after mounting devfs</a>
+<li><a name=toc13.3>13.3</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-13.html#ss13.3>A variety of panics and hangs with /tmp on a reiserfs filesystem</a>
+<li><a name=toc13.4>13.4</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-13.html#ss13.4>The compile fails with errors about conflicting types for 'open', 'dup', and 'waitpid'</a>
+<li><a name=toc13.5>13.5</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-13.html#ss13.5>UML doesn't work when /tmp is an NFS filesystem</a>
+<li><a name=toc13.6>13.6</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-13.html#ss13.6>UML hangs on boot when compiled with gprof support</a>
+<li><a name=toc13.7>13.7</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-13.html#ss13.7>syslogd dies with a SIGTERM on startup</a>
+<li><a name=toc13.8>13.8</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-13.html#ss13.8>TUN/TAP networking doesn't work on a 2.4 host</a>
+<li><a name=toc13.9>13.9</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-13.html#ss13.9>You can network to the host but not to other machines on the net</a>
+<li><a name=toc13.10>13.10</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-13.html#ss13.10>I have no root and I want to scream</a>
+<li><a name=toc13.11>13.11</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-13.html#ss13.11>UML build conflict between ptrace.h and ucontext.h</a>
+<li><a name=toc13.12>13.12</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-13.html#ss13.12>The UML BogoMips is exactly half the host's BogoMips</a>
+<li><a name=toc13.13>13.13</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-13.html#ss13.13>When you run UML, it immediately segfaults</a>
+<li><a name=toc13.14>13.14</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-13.html#ss13.14>xterms appear, then immediately disappear</a>
+<li><a name=toc13.15>13.15</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-13.html#ss13.15>cannot set up thread-local storage</a>
+<li><a name=toc13.16>13.16</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-13.html#ss13.16>Process segfaults with a modern (NPTL-using) filesystem</a>
+<li><a name=toc13.17>13.17</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-13.html#ss13.17>Any other panic, hang, or strange behavior</a>
+</ul>
+<p>
+<h2><a name=toc14>14.</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-14.html>Diagnosing Problems</a></h2>
+<ul>
+<li><a name=toc14.1>14.1</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-14.html#ss14.1>Case 1 : Normal kernel panics</a>
+<li><a name=toc14.2>14.2</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-14.html#ss14.2>Case 2 : Tracing thread panics</a>
+<li><a name=toc14.3>14.3</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-14.html#ss14.3>Case 3 : Tracing thread panics caused by other threads</a>
+<li><a name=toc14.4>14.4</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-14.html#ss14.4>Case 4 : Hangs</a>
+</ul>
+<p>
+<h2><a name=toc15>15.</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-15.html>Thanks</a></h2>
+<ul>
+<li><a name=toc15.1>15.1</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-15.html#ss15.1>Code and Documentation</a>
+<li><a name=toc15.2>15.2</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-15.html#ss15.2>Flushing out bugs</a>
+<li><a name=toc15.3>15.3</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-15.html#ss15.3>Buglets and clean-ups</a>
+<li><a name=toc15.4>15.4</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-15.html#ss15.4>Case Studies</a>
+<li><a name=toc15.5>15.5</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-15.html#ss15.5>Other contributions</a>
+</ul>
+<hr>
+<a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-1.html>Next</a>
+Previous
+Contents
+<div class=youdao_tans_modal style=display:none></div>

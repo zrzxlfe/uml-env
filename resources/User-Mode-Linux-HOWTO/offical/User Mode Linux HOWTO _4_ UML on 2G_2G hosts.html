@@ -1,0 +1,45 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 3.2 Final//EN"> <html><!--
+ Page saved with SingleFile 
+ url: http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-4.html 
+ saved date: Thu Jun 17 2021 15:25:54 GMT+0800 (China Standard Time)
+--><meta charset=utf-8>
+<meta name=GENERATOR content="LinuxDoc-Tools 0.9.21">
+<title>User Mode Linux HOWTO : UML on 2G/2G hosts</title>
+<link href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-5.html rel=next>
+<link href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-3.html rel=previous>
+<link href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc4 rel=contents>
+<style>.youdao_tans_modal{position:fixed;background-color:#fff;max-width:400px;max-height:400px;overflow-y:auto;padding:16px;border-radius:2px;border:1px solid #35a1d4;font-size:12px;line-height:1.6;color:#434343;box-shadow:0 3px 6px -4px rgba(0,0,0,.12),0 6px 16px 0 rgba(0,0,0,.08),0 9px 28px 8px rgba(0,0,0,.05);z-index:9999999999;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,PingFang SC,Hiragino Sans GB,Microsoft YaHei,Helvetica Neue,Helvetica,Arial,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol}h2{font-size:16px;margin-top:16px}.youdao_tans_modal a[href^='#'],a:not([href]),a[href='']{color:#434343}</style><link type=image/x-icon rel="shortcut icon" href="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="><link rel=canonical href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-4.html></head>
+<body>
+<a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-5.html>Next</a>
+<a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-3.html>Previous</a>
+<a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc4>Contents</a>
+<hr>
+<h2><a name=2G-2G></a> <a name=s4>4.</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc4>UML on 2G/2G hosts</a></h2>
+<p> </p>
+<h2><a name=ss4.1>4.1</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc4.1>Introduction</a>
+</h2>
+<p>Most Linux machines are configured so that the kernel occupies the
+upper 1G (0xc0000000 - 0xffffffff) of the 4G address space and
+processes use the lower 3G (0x00000000 - 0xbfffffff). However, some
+machine are configured with a 2G/2G split, with the kernel occupying
+the upper 2G (0x80000000 - 0xffffffff) and processes using the lower
+2G (0x00000000 - 0x7fffffff).</p>
+<h2><a name=ss4.2>4.2</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc4.2>The problem</a>
+</h2>
+<p>The prebuilt UML binaries on this site will not run on 2G/2G hosts
+because UML occupies the upper .5G of the 3G process address space
+(0xa0000000 - 0xbfffffff). Obviously, on 2G/2G hosts, this is right
+in the middle of the kernel address space, so UML won't even load - it
+will immediately segfault.</p>
+<h2><a name=ss4.3>4.3</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc4.3>The solution</a>
+</h2>
+<p>The fix for this is to rebuild UML from source after enabling
+CONFIG_HOST_2G_2G (under 'General Setup'). This will cause UML to
+load itself in the top .5G of that smaller process address space,
+where it will run fine. See 
+<a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-2.html#compile>Compiling the kernel and modules</a> if you need help building UML from source.</p>
+<hr>
+<a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-5.html>Next</a>
+<a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-3.html>Previous</a>
+<a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc4>Contents</a>
+<div class=youdao_tans_modal style=display:none></div>

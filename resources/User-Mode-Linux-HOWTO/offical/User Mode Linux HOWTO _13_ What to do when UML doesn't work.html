@@ -1,0 +1,305 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 3.2 Final//EN"> <html style><!--
+ Page saved with SingleFile 
+ url: http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-13.html 
+ saved date: Thu Jun 17 2021 15:30:04 GMT+0800 (China Standard Time)
+--><meta charset=utf-8>
+<meta name=GENERATOR content="LinuxDoc-Tools 0.9.21">
+<title>User Mode Linux HOWTO : What to do when UML doesn't work</title>
+<link href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-14.html rel=next>
+<link href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-12.html rel=previous>
+<link href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc13 rel=contents>
+<style>h2{font-size:16px;margin-top:16px}.youdao_tans_modal a[href^='#'],a:not([href]),a[href='']{color:#434343}</style><link type=image/x-icon rel="shortcut icon" href="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="><style>.sf-hidden{display:none!important}</style><link rel=canonical href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-13.html></head>
+<body>
+<a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-14.html>Next</a>
+<a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-12.html>Previous</a>
+<a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc13>Contents</a>
+<hr>
+<h2><a name=faq></a> <a name=s13>13.</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc13>What to do when UML doesn't work</a></h2>
+<p> </p>
+<h2><a name=ss13.1>13.1</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc13.1>Strange compilation errors when you build from source</a>
+</h2>
+<p>As of test11, it is necessary to have "ARCH=um" in the environment or
+on the make command line for all steps in building UML, including
+clean, distclean, or mrproper, config, menuconfig, or xconfig, dep,
+and linux. If you forget for any of them, the i386 build seems to
+contaminate the UML build. If this happens, start from scratch with
+<blockquote><code>
+<pre>host% 
+make mrproper ARCH=um
+</pre>
+</code></blockquote>
+and repeat the build process with ARCH=um on all the steps.<p></p>
+<p> 
+See 
+<a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-2.html#compile>Compiling the kernel and modules</a> for 
+more details.</p>
+<p> 
+Another cause of strange compilation errors is building UML in
+/usr/src/linux. If you do this, the first thing you need to do is
+clean up the mess you made. The /usr/src/linux/asm link will now
+point to /usr/src/linux/asm-um. Make it point back to
+/usr/src/linux/asm-i386. Then, move your UML pool someplace else and
+build it there. Also see below, where a more specific set of symptoms
+is described.</p>
+<h2><a name=ss13.2>13.2</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc13.2>UML hangs on boot after mounting devfs</a>
+</h2>
+<p>The boot looks like this:
+<blockquote><code>
+<pre>VFS: Mounted root (ext2 filesystem) readonly.
+Mounted devfs on /dev
+</pre>
+</code></blockquote>
+You're probably running a recent distribution on an old machine. I
+saw this with the RH7.1 filesystem running on a Pentium. The shared
+library loader, ld.so, was executing an instruction (cmove) which the
+Pentium didn't support. That instruction was apparently added later.
+If you run UML under the debugger, you'll see the hang caused by one
+instruction causing an infinite SIGILL stream.<p></p>
+<p> 
+The fix is to boot UML on an older filesystem.</p>
+<h2><a name=ss13.3>13.3</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc13.3>A variety of panics and hangs with /tmp on a reiserfs filesystem</a>
+</h2>
+<p>I saw this on reiserfs 3.5.21 and it seems to be fixed in 3.5.27.
+Panics preceded by 
+<blockquote><code>
+<pre>Detaching pid nnnn
+</pre>
+</code></blockquote>
+ are
+diagnostic of this problem. This is a reiserfs bug which causes a
+thread to occasionally read stale data from a mmapped page shared with
+another thread. The fix is to upgrade the filesystem or to have /tmp be
+an ext2 filesystem.<p></p>
+<h2><a name=ss13.4>13.4</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc13.4>The compile fails with errors about conflicting types for 'open', 'dup', and 'waitpid'</a>
+</h2>
+<p>This happens when you build in /usr/src/linux. The UML build makes
+the include/asm link point to include/asm-um. /usr/include/asm points
+to /usr/src/linux/include/asm, so when that link gets moved, files
+which need to include the asm-i386 versions of headers get the
+incompatible asm-um versions. The fix is to move the include/asm link
+back to include/asm-i386 and to do UML builds someplace else.</p>
+<h2><a name=ss13.5>13.5</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc13.5>UML doesn't work when /tmp is an NFS filesystem</a>
+</h2>
+<p>This seems to be a similar situation with the resierfs problem above. Some
+versions of NFS seems not to handle mmap correctly, which UML depends on.
+The workaround is have /tmp be non-NFS directory.</p>
+<h2><a name=ss13.6>13.6</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc13.6>UML hangs on boot when compiled with gprof support</a>
+</h2>
+<p>If you build UML with gprof support and, early in the boot, it does this
+<blockquote><code>
+<pre>kernel BUG at page_alloc.c:100!
+</pre>
+</code></blockquote>
+you have a buggy gcc. You can work around the problem by removing
+UM_FASTCALL from CFLAGS in arch/um/Makefile-i386. This will open up
+another bug, but that one is fairly hard to reproduce.<p></p>
+<h2><a name=ss13.7>13.7</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc13.7>syslogd dies with a SIGTERM on startup</a>
+</h2>
+<p>The exact boot error depends on the distribution that you're booting,
+but Debian produces this:
+<blockquote><code>
+<pre>/etc/rc2.d/S10sysklogd: line 49:    93 Terminated
+start-stop-daemon --start --quiet --exec /sbin/syslogd -- $SYSLOGD
+</pre>
+</code></blockquote>
+This is a syslogd bug. There's a race between a parent process
+installing a signal handler and its child sending the signal. See
+<a href=http://www.geocrawler.com/lists/3/SourceForge/709/0/6612801>this uml-devel post</a> for the details.<p></p>
+<h2><a name=ss13.8>13.8</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc13.8>TUN/TAP networking doesn't work on a 2.4 host</a>
+</h2>
+<p>There are a couple of problems which were 
+<a href=http://www.geocrawler.com/lists/3/SourceForge/597/0/>http://www.geocrawler.com/lists/3/SourceForge/597/0/</a> name="pointed out"&gt; by 
+<a href=http://user-mode-linux.sourceforge.net/old/timro%20at%20trkr%20dot%20net>Tim Robinson</a> 
+<ul>
+<li>It doesn't work on hosts running 2.4.7 (or thereabouts) or earlier. The fix 
+is to upgrade to something more recent and then read the next item.
+</li>
+<li>If you see 
+<blockquote><code>
+<pre>File descriptor in bad state
+</pre>
+</code></blockquote>
+ when you
+bring up the device inside UML, you have a header mismatch between the
+original kernel and the upgraded one. Make /usr/src/linux point at
+the new headers. This will only be a problem if you build uml_net
+yourself.
+</li>
+</ul>
+<p></p>
+<h2><a name=ss13.9>13.9</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc13.9>You can network to the host but not to other machines on the net</a>
+</h2>
+<p>If you can connect to the host, and the host can connect to UML, but you 
+can not connect to any other machines, then you may need to enable IP 
+Masquerading on the host. Usually this is only experienced when using 
+private IP addresses (192.168.x.x or 10.x.x.x) for host/UML
+networking, rather than the public address space that your host
+is connected to. UML does not enable IP Masquerading, so you will
+need to create a static rule to enable it:
+<blockquote><code>
+<pre>host% 
+iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
+</pre>
+</code></blockquote>
+Replace eth0 with the interface that you use to talk to the
+rest of the world.<p></p>
+<p> 
+Documentation on IP Masquerading, and SNAT, can be found at 
+<a href=http://www.netfilter.org/> www.netfilter.org </a> .</p>
+<p> 
+If you can reach the local net, but not the outside Internet, then
+that is usually a routing problem. The UML needs a default route:
+<blockquote><code>
+<pre>UML# 
+route add default gw gateway IP
+</pre>
+</code></blockquote>
+The gateway IP can be any machine on the local net that knows how to
+reach the outside world. Usually, this is the host or the local
+network's gateway.<p></p>
+<p> 
+Occasionally, we hear from someone who can reach some machines, but
+not others on the same net, or who can reach some ports on other
+machines, but not others. These are usually caused by strange
+firewalling somewhere between the UML and the other box. You track
+this down by running tcpdump on every interface the packets travel
+over and see where they disappear. When you find a machine that
+takes the packets in, but does not send them onward, that's the
+culprit.</p>
+<h2><a name=ss13.10>13.10</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc13.10>I have no root and I want to scream</a>
+</h2>
+<p>Thanks to Birgit Wahlich for telling me about this strange one. It
+turns out that there's a limit of six environment variables on the
+kernel command line. When that limit is reached or exceeded, argument
+processing stops, which means that the 'root=' argument that UML
+usually adds is not seen. So, the filesystem has no idea what the
+root device is, so it panics.</p>
+<p> 
+The fix is to put less stuff on the command line. Glomming all your
+setup variables into one is probably the best way to go.</p>
+<h2><a name=ss13.11>13.11</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc13.11>UML build conflict between ptrace.h and ucontext.h</a>
+</h2>
+<p>On some older systems, /usr/include/asm/ptrace.h and 
+/usr/include/sys/ucontext.h define the same names. So, when they're
+included together, the defines from one completely mess up the parsing
+of the other, producing errors like:
+<blockquote><code>
+<pre>/usr/include/sys/ucontext.h:47: parse error before
+`10'
+</pre>
+</code></blockquote>
+plus a pile of warnings.<p></p>
+<p> 
+This is a libc botch, which has since been fixed, and I don't see any
+way around it besides upgrading.</p>
+<h2><a name=ss13.12>13.12</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc13.12>The UML BogoMips is exactly half the host's BogoMips</a>
+</h2>
+<p>On i386 kernels, there are two ways of running the loop that is used
+to calculate the BogoMips rating, using the TSC if it's there or using
+a one-instruction loop. The TSC produces twice the BogoMips as the
+loop. UML uses the loop, since it has nothing resembling a TSC, and
+will get almost exactly the same BogoMips as a host using the loop.
+However, on a host with a TSC, its BogoMips will be double the loop
+BogoMips, and therefore double the UML BogoMips.</p>
+<h2><a name=ss13.13>13.13</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc13.13>When you run UML, it immediately segfaults</a>
+</h2>
+<p>If the host is configured with the 2G/2G address space split, that's
+why. See 
+<a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-4.html#2G-2G>UML on 2G/2G hosts</a> for
+the details on getting UML to run on your host.</p>
+<h2><a name=ss13.14>13.14</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc13.14>xterms appear, then immediately disappear</a>
+</h2>
+<p>If you're running an up to date kernel with an old release of 
+uml_utilities, the port-helper program will not work properly, so 
+xterms will exit straight after they appear. The solution is to
+upgrade to the latest release of uml_utilities. Usually this problem
+occurs when you have installed a packaged release of UML then
+compiled your own development kernel without upgrading the
+uml_utilities from the source distribution.</p>
+<h2><a name=ss13.15>13.15</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc13.15>cannot set up thread-local storage</a>
+</h2>
+<p>This problem is fixed by the skas-hold-own-ldt patch that went into
+2.6.15-rc1.</p>
+<p> </p>
+<p>The boot looks like this:
+<blockquote><code>
+<pre>cannot set up thread-local storage: cannot set up LDT for thread-local storage
+Kernel panic - not syncing: Attempted to kill init!
+</pre>
+</code></blockquote>
+<p></p>
+<p>Your UML kernel doesn't support Native Posix Thread Library (NPTL) and
+the binaries you're running are being dynamically linked to it. Try
+running in SKAS3 mode first. You might be able to avoid the kernel
+panic setting the 
+<a href=http://people.redhat.com/drepper/assumekernel.html> LD_ASSUME_KERNEL</a> environment variable on the command line:</p>
+<p>
+<blockquote><code>
+<pre> 
+./linux init=/bin/sh LD_ASSUME_KERNEL=2.4.1
+</pre>
+</code></blockquote>
+<p></p>
+<p> 
+Many commands are very restrictive about what is preserved in the
+environment when starting child processes, so relying on
+LD_ASSUME_KERNEL to be globally set for all processes in the whole
+system is generally not a good idea. It's very hard to
+guarantee. Thus it's better to move the NPTL libraries away:</p>
+<p>
+<blockquote><code>
+<pre># mount root_fs mnt-uml/ -o loop
+# mv mnt-uml/lib/tls mnt-uml/lib/tls.away
+# umount mnt-uml
+</pre>
+</code></blockquote>
+<p></p>
+<p>If you're running Debian, you might prefer to use dpkg-divert:
+<blockquote><code>
+<pre># export LD_ASSUME_KERNEL=2.4.1
+# mount root_fs mnt-uml/ -o loop
+# chroot mnt-uml
+# mkdir /lib/tls.off
+# cd /lib/tls
+# for f in *;
+  do
+       dpkg-divert --divert --local --rename --divert /lib/tls.off/$f --add /lib/tls/$f;
+  done
+# exit
+# umount mnt-uml
+# unset LD_ASSUME_KERNEL
+</pre>
+</code></blockquote>
+<p></p>
+<h2><a name=ss13.16>13.16</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc13.16>Process segfaults with a modern (NPTL-using) filesystem</a>
+</h2>
+<p>These appear to be fixed with the tls patches from Blaisorblade that
+are currently in my 
+<a href=http://user-mode-linux.sourceforge.net/patches.html>patchset</a> . You can apply the entire
+patchset, or you can move /lib/tls in the image away, as described
+above.</p>
+<h2><a name=ss13.17>13.17</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc13.17>Any other panic, hang, or strange behavior</a>
+</h2>
+<p>If you're seeing truly strange behavior, such as hangs or panics that
+happen in random places, or you try running the debugger to see what's
+happening and it acts strangely, then it could be a problem in the
+host kernel. If you're not running a stock Linus or -ac kernel, then
+try that. An early version of the preemption patch and a 2.4.10 SuSE
+kernel have caused very strange problems in UML.</p>
+<p> 
+Otherwise, let me know about it. Send a message to one of the UML
+mailing lists - either the developer list - user-mode-linux-devel at
+lists dot sourceforge dot net (subscription
+info) or the user list - user-mode-linux-user at lists dot
+sourceforge do net (subscription info),
+whichever you prefer. Don't assume that everyone knows about it and
+that a fix is imminent.</p>
+<p> 
+If you want to be super-helpful, read 
+<a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-14.html#trouble>Diagnosing Problems</a> 
+and follow the instructions contained therein.</p>
+<hr>
+<a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-14.html>Next</a>
+<a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-12.html>Previous</a>
+<a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc13>Contents</a>
+<div class="youdao_tans_modal sf-hidden"></div>

@@ -1,0 +1,295 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 3.2 Final//EN"> <html><!--
+ Page saved with SingleFile 
+ url: http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-10.html 
+ saved date: Thu Jun 17 2021 15:28:25 GMT+0800 (China Standard Time)
+--><meta charset=utf-8>
+<meta name=GENERATOR content="LinuxDoc-Tools 0.9.21">
+<title>User Mode Linux HOWTO : The Management Console</title>
+<link href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-11.html rel=next>
+<link href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-9.html rel=previous>
+<link href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc10 rel=contents>
+<style>h2{font-size:16px;margin-top:16px}.youdao_tans_modal a[href^='#'],a:not([href]),a[href='']{color:#434343}</style><link type=image/x-icon rel="shortcut icon" href="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="><style>.sf-hidden{display:none!important}</style><link rel=canonical href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-10.html></head>
+<body>
+<a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-11.html>Next</a>
+<a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-9.html>Previous</a>
+<a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc10>Contents</a>
+<hr>
+<h2><a name=mconsole></a> <a name=s10>10.</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc10>The Management Console</a></h2>
+<p> </p>
+<p>The UML management console is a low-level interface to the kernel,
+somewhat like the i386 SysRq interface. Since there is a full-blown
+operating system under UML, there is much greater flexibility possible
+than with the SysRq mechanism.</p>
+<p> 
+There are a number of things you can do with the mconsole interface:
+<ul>
+<li>get the kernel version
+</li>
+<li>add and remove devices
+</li>
+<li>halt or reboot the machine
+</li>
+<li>send SysRq commands
+</li>
+<li>pause and resume the UML
+</li>
+<li>make online backups without shutting down the UML
+</li>
+<li>receive notifications of events of interest from within UML 
+</li>
+<li>monitor the internal state of the UML
+</li>
+</ul>
+<p></p>
+<p> 
+You need the mconsole client (uml_mconsole) which is present in CVS
+(/tools/mconsole) in 2.4.5-9um and later, and will be in the RPM in 2.4.6.</p>
+<p> 
+You also need CONFIG_MCONSOLE (under 'General Setup') enabled in UML.
+When you boot UML, you'll see a line like:
+<blockquote><code>
+<pre>mconsole initialized on /home/jdike/.uml/umlNJ32yL/mconsole
+</pre>
+</code></blockquote>
+If you specify a unique machine id one the UML command line, i.e.
+<blockquote><code>
+<pre> umid=debian
+</pre>
+</code></blockquote>
+you'll see this 
+<blockquote><code>
+<pre>mconsole initialized on /home/jdike/.uml/debian/mconsole
+</pre>
+</code></blockquote>
+That file is the socket that uml_mconsole will use to communicate
+with UML. Run it with either the umid or the full path as its argument:
+<blockquote><code>
+<pre>host% uml_mconsole debian
+</pre>
+</code></blockquote>
+or
+<blockquote><code>
+<pre>host% uml_mconsole /home/jdike/.uml/debian/mconsole
+</pre>
+</code></blockquote>
+<p></p>
+<p>You'll get a prompt, at which you can run one of these commands:
+<ul>
+<li>version
+</li>
+<li>halt
+</li>
+<li>reboot
+</li>
+<li>config
+</li>
+<li>remove
+</li>
+<li>sysrq
+</li>
+<li>help
+</li>
+<li>cad
+</li>
+<li>stop
+</li>
+<li>go
+</li>
+<li>log
+</li>
+<li>proc
+</li>
+</ul>
+<p></p>
+<h2><a name=ss10.1>10.1</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc10.1>version</a>
+</h2>
+<p>This takes no arguments. It prints the UML version.
+<blockquote><code>
+<pre>(mconsole)  version
+OK Linux usermode 2.4.5-9um #1 Wed Jun 20 22:47:08 EDT 2001 i686
+</pre>
+</code></blockquote>
+<p></p>
+<p>There are a couple actual uses for this. It's a simple no-op which
+can be used to check that a UML is running. It's also a way of
+sending an interrupt to the UML. This is sometimes useful on SMP
+hosts, where there's a bug which causes signals to UML to be lost,
+often causing it to appear to hang. Sending such a UML the mconsole
+version command is a good way to 'wake it up' before networking has
+been enabled, as it does not do anything to the function of the UML.</p>
+<h2><a name=ss10.2>10.2</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc10.2>halt and reboot</a>
+</h2>
+<p>These take no arguments. They shut the machine down immediately, with
+no syncing of disks and no clean shutdown of userspace. So, they are
+pretty close to crashing the machine.
+<blockquote><code>
+<pre>(mconsole)  halt
+OK
+</pre>
+</code></blockquote>
+<p></p>
+<h2><a name=ss10.3>10.3</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc10.3>config</a>
+</h2>
+<p>"config" adds a new device to the virtual machine or queries the configuration of an existing device.</p>
+<p> 
+Currently the ubd and network drivers support pulling devices. It takes one
+argument, which is the device to add, with the same syntax as the
+kernel command line. 
+<blockquote><code>
+<pre>(mconsole)  
+config ubd3=/home/jdike/incoming/roots/root_fs_debian22
+
+OK
+(mconsole)  config eth1=mcast
+OK
+</pre>
+</code></blockquote>
+Querying the configuration of a device is handy when you don't know
+before the boot what host device the UML device will attach to. This
+is a problem with attaching consoles and serial lines to host pty or
+pts devices. You have no way of knowing how to access them without
+parsing the kernel messages. So, the syntax for this is the same as
+above, except you don't specify a configuration
+<blockquote><code>
+<pre>(mconsole)  config ssl0
+OK pty:/dev/ptyp0
+(mconsole)  config ubd0
+OK /home/jdike/roots/cow.debian,/home/jdike/roots/debian_22
+</pre>
+</code></blockquote>
+This is supported by the console, serial line, and ubd drivers. As
+yet, the network drivers don't support this.<p></p>
+<h2><a name=ss10.4>10.4</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc10.4>remove</a>
+</h2>
+<p>"remove" deletes a device from the system. Its argument is just the
+name of the device to be removed. The device must be idle in
+whatever sense the driver considers necessary. In the case of the ubd
+driver, the removed block device must not be mounted, swapped on, or
+otherwise open, and in the case of the network driver, the device must be down.
+<blockquote><code>
+<pre>(mconsole)  remove ubd3
+OK
+(mconsole)  remove eth1
+OK
+</pre>
+</code></blockquote>
+<p></p>
+<h2><a name=ss10.5>10.5</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc10.5>sysrq</a>
+</h2>
+<p>This takes one argument, which is a single letter. It calls the
+generic kernel's SysRq driver, which does whatever is called for by
+that argument. See the SysRq documentation in Documentation/sysrq.txt
+in your favorite kernel tree to see what letters are valid and what
+they do.</p>
+<h2><a name=ss10.6>10.6</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc10.6>help</a>
+</h2>
+<p>"help" returns a string listing the valid commands and what each one does.</p>
+<h2><a name=ss10.7>10.7</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc10.7>cad</a>
+</h2>
+<p>This invokes the Ctl-Alt-Del action on init. What exactly this ends
+up doing is up to /etc/inittab. Normally, it reboots the machine.
+With UML, this is usually not desired, so if a halt would be better,
+then find the section of inittab that looks like this
+<blockquote><code>
+<pre># What to do when CTRL-ALT-DEL is pressed.
+ca:12345:ctrlaltdel:/sbin/shutdown -t1 -a -r now
+</pre>
+</code></blockquote>
+and change the command to halt.<p></p>
+<h2><a name=ss10.8>10.8</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc10.8>stop</a>
+</h2>
+<p>This puts the UML in a loop reading mconsole requests until a 'go' 
+mconsole command is recieved. This is very useful for making backups of 
+UML filesystems, as the UML can be stopped, then synced via 'sysrq s', so 
+that everything is written to the filesystem. You can then copy the 
+filesystem and then send the UML 'go' via mconsole.</p>
+<p> 
+Note that a UML running with more than one CPU will have problems after 
+you send the 'stop' command, as only one CPU will be held in a mconsole 
+loop and all others will continue as normal. This is a bug, and will
+be fixed.</p>
+<h2><a name=ss10.9>10.9</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc10.9>go</a>
+</h2>
+<p>This resumes a UML after being paused by a 'stop' command. Note that 
+when the UML has resumed, TCP connections may have timed out and if the 
+UML is paused for a long period of time, crond might go a little crazy, 
+running all the jobs it didn't do earlier.</p>
+<h2><a name=ss10.10>10.10</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc10.10>log</a>
+</h2>
+<p>This takes a string as its argument, and will cause the UML to printk
+the string so that it ends up in the kernel message log. This is
+intended for use in honeypots by allowing the UML-specific stuff in
+the kernel log to be replaced with messages that don't expose the
+machine as being a UML.</p>
+<h2><a name=ss10.11>10.11</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc10.11>proc</a>
+</h2>
+<p>This takes a filename as its argument. It will return the contents of
+the corresponding /proc file inside the UML. Example:
+<blockquote><code>
+<pre>(mconsole)  proc uptime
+</pre>
+</code></blockquote>
+will return the contents of the UML's /proc/uptime.<p></p>
+<h2><a name=ss10.12>10.12</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc10.12>Making online backups</a>
+</h2>
+<p>It is possible to make a backup of a UML's data without shutting it
+down. The idea is to pause it, make it flush out its data, copy the
+filesystem to a safe place, and then resume it. This should usually
+take seconds, while shutting down and rebooting the UML could take
+minutes. The exact procedure is this:
+<blockquote><code>
+<pre>(mconsole)  stop
+</pre>
+</code></blockquote>
+<blockquote><code>
+<pre>(mconsole)  sysrq s
+</pre>
+</code></blockquote>
+<blockquote><code>
+<pre>host% # Copy the UML's filesystem someplace safe
+</pre>
+</code></blockquote>
+<blockquote><code>
+<pre>(mconsole)  go
+</pre>
+</code></blockquote>
+<p></p>
+<p>By causing UML to flush its data out to disk, the 'sysrq s' will cause
+the filesystem to be a clean image. Of course, no guarantees are made
+for process data which hadn't been written back to the kernel, but the
+filesystem itself won't need an fsck if it's booted.</p>
+<h2><a name=ss10.13>10.13</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc10.13>Event notification</a>
+</h2>
+<p>The mconsole interface also provides a mechanism for processes inside
+a UML to send messages to an mconsole client on the host. The
+procedure is this:
+<ul>
+<li>Create a unix socket and pass that to UML on the command line as the
+mconsole notification socket
+<blockquote><code>
+<pre> mconsole=notify:&lt;bf&gt;socket
+</pre>
+</code></blockquote>
+</li>
+<li>A /proc/mconsole file will be created inside UML
+</li>
+<li>Anything that is written to it will be turned into an mconsole
+notification which your mconsole client should be listening for on the
+notification socket
+</li>
+</ul>
+A common use for this mechanism is to have an rc script inside UML
+send a message out that the UML has booted to a certain stage, and
+that something on the host which depends on that can proceed.
+However, this is a completely general mechanism which can be used to
+communicate any information at all to the host.<p></p>
+<p> 
+There is a demo mconsole notification client in the utilities tarball
+in mconsole/notify.pl. This is only a demo, and as such, isn't very
+useful by itself. It should be customized to fit into whatever
+environment you are setting up.</p>
+<hr>
+<a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-11.html>Next</a>
+<a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-9.html>Previous</a>
+<a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc10>Contents</a>
+<div class="youdao_tans_modal sf-hidden"></div>

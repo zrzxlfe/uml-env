@@ -1,0 +1,154 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 3.2 Final//EN"> <html><!--
+ Page saved with SingleFile 
+ url: http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-1.html 
+ saved date: Thu Jun 17 2021 15:24:03 GMT+0800 (China Standard Time)
+--><meta charset=utf-8>
+<meta name=GENERATOR content="LinuxDoc-Tools 0.9.21">
+<title>User Mode Linux HOWTO : Introduction</title>
+<link href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-2.html rel=next>
+<link href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc1 rel=contents>
+<style>.youdao_tans_modal{position:fixed;background-color:#fff;max-width:400px;max-height:400px;overflow-y:auto;padding:16px;border-radius:2px;border:1px solid #35a1d4;font-size:12px;line-height:1.6;color:#434343;box-shadow:0 3px 6px -4px rgba(0,0,0,.12),0 6px 16px 0 rgba(0,0,0,.08),0 9px 28px 8px rgba(0,0,0,.05);z-index:9999999999;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,PingFang SC,Hiragino Sans GB,Microsoft YaHei,Helvetica Neue,Helvetica,Arial,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol}h2{font-size:16px;margin-top:16px}.youdao_tans_modal a[href^='#'],a:not([href]),a[href='']{color:#434343}</style><link type=image/x-icon rel="shortcut icon" href="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="><link rel=canonical href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-1.html></head>
+<body>
+<a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-2.html>Next</a>
+Previous
+<a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc1>Contents</a>
+<hr>
+<h2><a name=intro></a> <a name=s1>1.</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc1>Introduction</a></h2>
+<p>Welcome to User Mode Linux. It's going to be fun.</p>
+<h2><a name=ss1.1>1.1</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc1.1>What is User Mode Linux?</a>
+</h2>
+<p>User Mode Linux lets you run Linux inside itself! With that comes the
+power to do all sorts of new things. It virtualises (or simulates, as
+some people call it) Linux so that you can run an entire Linux where
+once you would have only run a program.</p>
+<p>You might have heard of functionality like this before. There are
+quite a few projects whose goal is to nest operating systems in one
+way or another: Linux on Linux, Windows on Linux, Linux on Windows,
+Linux/s390 on Linux/anythingelse, and so on. Or even just x86 on
+anything, where the 'x86' program can boot operating systems including
+Linux.</p>
+<p>Where x86 is involved there is the greatest concentration of
+efforts. At the end of this HOWTO you'll find a list of alternative
+projects. If all you want to do is run a copy of x86 Linux on another
+copy of x86 Linux as fast as possible with little control then quite
+possibly one of these other projects will so better than UML.</p>
+<h2><a name=ss1.2>1.2</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc1.2>How is User Mode Linux Different?</a>
+</h2>
+<p>User Mode Linux (UML) is rather different from every other Linux
+virtualisation project, either free or commercial. UML
+strives to present itself as an ordinary program as much as
+possible. Here are some of the outcomes of that philosophy:</p>
+<p>
+<ol>
+<li> Good speed with few compromises. UML compiles to
+native machine code that runs just like any other compiled application
+on the host. This makes it very much faster than portable
+virtualisation schemes that implement an entire hardware architecture
+in software. On the other hand, UML does not suffer from
+the extreme hardware specificity of virtualisation systems that rely
+on particular CPU features. UML runs applications inside
+itself with normally at worst a 20% slowdown compared to the host
+system, which modern hardware and clever system design can render
+negligable in real terms.
+</li>
+<li> Futureproof. Every time Linux gets improved so it can do
+something new and clever that benefits the programs it runs, UML
+automatically gets that facility. Software suspend,
+fine-grained security control such as SE Linux, new filesystem
+features, support for bigger/faster hardware... the same is not true
+with those virtualisation systems that require major changes on the host
+computer.
+</li>
+<li> Flexible code. Normally an OS kernel is just that... a
+kernel. It talks to hardware or maybe some virtualised hardware. But
+UML can be viewed in many other ways. It would be possible
+to turn it into a shared library, for example, so that other programs
+could link to it to take advantage of things that Linux does very
+well. It can be started as a subshell of an existing application. It
+can use stin/stdout like any other program.
+</li>
+<li> Portable. Really portable. UML has only just
+started to be exploited for its portability, but there is promising
+evidence that ports to x86 Windows, PowerPC Linux, x86 BSD and other
+systems are very practical.
+</li>
+<li> Mature. UML has been in development since 1999. One
+indication of its robustness is that UML can be compiled to run within
+UML, making it 'self-hosting'. Production systems are running on UML.
+ </li>
+<li> Free Software. UML is under the GPL (as it must be, being
+part of the Linux kernel.)
+</li>
+</ol>
+<p></p>
+<h2><a name=ss1.3>1.3</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc1.3>How does UML Work?</a>
+</h2>
+<p>Normally, the Linux Kernel talks straight to your hardware (video
+card, keyboard, hard drives, etc), and any programs which run ask the
+kernel to operate the hardware, like so:</p>
+<p>
+<blockquote><code>
+<pre>  +-----------+-----------+----+
+  | Process 1 | Process 2 | ...|
+  +-----------+-----------+----+
+  |       Linux Kernel         |
+  +----------------------------+
+  |         Hardware           |
+  +----------------------------+
+</pre>
+</code></blockquote>
+<p></p>
+<p>The UML Kernel is different; instead of talking to the
+hardware, it talks to a `real' Linux kernel (called the `host kernel'
+from now on), like any other program. Programs can then run inside
+User-Mode Linux as if they were running under a normal kernel, like
+so:</p>
+<p>
+<blockquote><code>
+<pre>              +----------------+
+              | Process 2 | ...|
+  +-----------+----------------+
+  | Process 1 | User-Mode Linux|
+  +----------------------------+
+  |       Linux Kernel         |
+  +----------------------------+
+  |         Hardware           |
+  +----------------------------+
+</pre>
+</code></blockquote>
+<p></p>
+<h2><a name=ss1.4>1.4</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc1.4>Why Would I Want UML?</a>
+</h2>
+<p>
+<ol>
+<li> If UML crashes, your host kernel is still fine.</li>
+<li> You can run a usermode kernel as a non-root user.</li>
+<li> You can debug the UML like any normal process.</li>
+<li> You can run gprof (profiling) and gcov (coverage testing).</li>
+<li> You can play with your kernel without breaking things.</li>
+<li> You can use it as a sandbox for testing new apps.</li>
+<li> You can try new development kernels safely.</li>
+<li> You can run different distributions simultaneously.</li>
+<li> It's extremely fun.</li>
+</ol>
+<p></p>
+<hr>
+<a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-2.html>Next</a>
+Previous
+<a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc1>Contents</a>
+<div class=youdao_tans_modal style=display:none;top:116px;left:787px>
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ </div>

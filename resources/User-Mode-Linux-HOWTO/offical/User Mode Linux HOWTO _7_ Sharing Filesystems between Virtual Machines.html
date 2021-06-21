@@ -1,0 +1,190 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 3.2 Final//EN"> <html><!--
+ Page saved with SingleFile 
+ url: http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-7.html 
+ saved date: Thu Jun 17 2021 15:26:59 GMT+0800 (China Standard Time)
+--><meta charset=utf-8>
+<meta name=GENERATOR content="LinuxDoc-Tools 0.9.21">
+<title>User Mode Linux HOWTO : Sharing Filesystems between Virtual Machines</title>
+<link href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-8.html rel=next>
+<link href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-6.html rel=previous>
+<link href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc7 rel=contents>
+<style>h2{font-size:16px;margin-top:16px}.youdao_tans_modal a[href^='#'],a:not([href]),a[href='']{color:#434343}</style><link type=image/x-icon rel="shortcut icon" href="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="><style>.sf-hidden{display:none!important}</style><link rel=canonical href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-7.html></head>
+<body>
+<a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-8.html>Next</a>
+<a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-6.html>Previous</a>
+<a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc7>Contents</a>
+<hr>
+<h2><a name=shared_fs></a> <a name=s7>7.</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc7>Sharing Filesystems between Virtual Machines</a></h2>
+<p> </p>
+<h2><a name=ss7.1>7.1</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc7.1>A warning</a>
+</h2>
+<p>Don't attempt to share filesystems simply by booting two UMLs from the
+same file. That's the same thing as booting two physical machines
+from a shared disk. It will result in filesystem corruption.</p>
+<h2><a name=ss7.2>7.2</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc7.2>Using layered block devices</a>
+</h2>
+<p>The way to share a filesystem between two virtual machines is to use
+the copy-on-write (COW) layering capability of the ubd block driver. As of
+2.4.6-2um, the driver supports layering a read-write private device
+over a read-only shared device. A machine's writes are stored in the
+private device, while reads come from either device - the private one
+if the requested block is valid in it, the shared one if not. Using
+this scheme, the majority of data which is unchanged is shared between
+an arbitrary number of virtual machines, each of which has a much
+smaller file containing the changes that it has made. With a large
+number of UMLs booting from a large root filesystem, this leads to a
+huge disk space saving. It will also help performance, since the host
+will be able to cache the shared data using a much smaller amount of
+memory, so UML disk requests will be served from the host's memory
+rather than its disks. </p>
+<p> </p>
+<p>To add a copy-on-write layer to an existing block device file, simply
+add the name of the COW file to the appropriate ubd switch:
+<blockquote><code>
+<pre> ubd0=root_fs_cow,root_fs_debian_22
+</pre>
+</code></blockquote>
+where 'root_fs_cow' is the private COW file and 'root_fs_debian_22' is
+the existing shared filesystem. The COW file need not exist. If it
+doesn't, the driver will create and initialize it. Once the COW file
+has been initialized, it can be used on its own on the command line:
+<blockquote><code>
+<pre> ubd0=root_fs_cow
+</pre>
+</code></blockquote>
+The name of the backing file is stored in the COW file header, so it
+would be redundant to continue specifying it on the command line.<p></p>
+<h2><a name=ss7.3>7.3</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc7.3>Note!</a>
+</h2>
+<p>When checking the size of the COW file in order to see the gobs of
+space that you're saving, make sure you use 'ls -ls' to see the actual
+disk consumption rather than the length of the file. The COW file is
+sparse, so the length will be very different from the disk usage.
+Here is a 'ls -l' of a COW file and backing file from one boot and
+shutdown:
+<blockquote><code>
+<pre>host% ls -l cow.debian debian2.2
+-rw-r--r--    1 jdike    jdike    492504064 Aug  6 21:16 cow.debian
+-rwxrw-rw-    1 jdike    jdike    537919488 Aug  6 20:42 debian2.2
+</pre>
+</code></blockquote>
+Doesn't look like much saved space, does it? Well, here's 'ls -ls':
+<blockquote><code>
+<pre>host% ls -ls cow.debian debian2.2
+   880 -rw-r--r--    1 jdike    jdike    492504064 Aug  6 21:16 cow.debian
+525832 -rwxrw-rw-    1 jdike    jdike    537919488 Aug  6 20:42 debian2.2
+</pre>
+</code></blockquote>
+Now, you can see that the COW file has less than a meg of disk, rather
+than 492 meg.<p></p>
+<h2><a name=ss7.4>7.4</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc7.4>Another warning</a>
+</h2>
+<p>Once a filesystem is being used as a readonly backing file for a COW
+file, do not boot directly from it or modify it in any way. Doing so
+will invalidate any COW files that are using it. The mtime and size
+of the backing file are stored in the COW file header at its creation,
+and they must continue to match. If they don't, the driver will
+refuse to use the COW file.</p>
+<p> </p>
+<p>If you attempt to evade this restriction by changing either the
+backing file or the COW header by hand, you will get a corrupted
+filesystem.</p>
+<p> </p>
+<p>Among other things, this means that upgrading the distribution in a
+backing file and expecting that all of the COW files using it will see
+the upgrade will not work. </p>
+<h2><a name=ss7.5>7.5</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc7.5>Moving a backing file</a>
+</h2>
+<p>Because UML stores the backing file name and its mtime in the COW
+header, if you move the backing file, that information becomes
+invalid. So, the procedure for moving a backing file is
+<ul>
+<li>Move it in a way that preserves timestamps. Usually, this is a "-p"
+switch. "cp -a" works because "-a" implies "-p".
+</li>
+<li>Update the COW header by booting UML on it, specifying both the COW
+file and the new location of the backing file
+<blockquote><code>
+<pre> ubda=COW file,new backing file location
+</pre>
+</code></blockquote>
+UML will notice the mismatch between the command line and COW header,
+check the size and mtime of the new backing file path, and update the
+COW header to reflect it if it checks out.
+</li>
+</ul>
+If you forget to preserve the timestamps when you move the backing
+file, you can fix the mtime by hand as follows
+<blockquote><code>
+<pre>host% 
+mtime=whatever UML says mtime should be ; \
+touch --date="`date -d 1970-01-01\ UTC\ $mtime\ seconds`" backing file
+</pre>
+</code></blockquote>
+Note that if you do this on a backing file that has truly been
+changed, and not just moved, then you will get file corruption and you
+will lose the filesystem.<p></p>
+<h2><a name=ss7.6>7.6</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc7.6>uml_moo : Merging a COW file with its backing file</a>
+</h2>
+<p>Depending on how you use UML and COW devices, it may be advisable to
+merge the changes in the COW file into the backing file every once in
+a while.</p>
+<p> </p>
+<p>The utility that does this is uml_moo. Its usage is
+<blockquote><code>
+<pre>host% uml_moo COW file new backing file
+</pre>
+</code></blockquote>
+There's no need to specify the backing file since that information is
+already in the COW file header. If you're paranoid, boot the new
+merged file, and if you're happy with it, move it over the old backing
+file.<p></p>
+<p> </p>
+<p>uml_moo creates a new backing file by default as a safety measure. It
+also has a destructive merge option which will merge the COW file
+directly into its current backing file. This is really only usable
+when the backing file only has one COW file associated with it. If
+there are multiple COWs associated with a backing file, a -d merge of
+one of them will invalidate all of the others. However, it is
+convenient if you're short of disk space, and it should also be
+noticably faster than a non-destructive merge. This usage is
+<blockquote><code>
+<pre>host% uml_moo -d COW file
+</pre>
+</code></blockquote>
+<p></p>
+<p> </p>
+<p>uml_moo is installed with the UML deb and RPM. If you didn't install
+UML from one of those packages, you can also get it from the 
+<a href=http://user-mode-linux.sourceforge.net/dl-sf.html#UML%20utilities>UML utilities</a> tar file in tools/moo.</p>
+<h2><a name=ss7.7>7.7</a> <a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc7.7>uml_mkcow : Create a new COW file</a>
+</h2>
+<p>The normal way to create a COW file is to specify a non-existant COW
+file on the UML command line, and let UML create it for you. However,
+sometimes you want a new COW file, and you don't want to boot UML in
+order to get it. This can be done with uml_mkcow, which is a little
+standalone utility by Steve Schnepp.</p>
+<p> 
+The standard usage is 
+<blockquote><code>
+<pre>host% uml_mkcow new COW file existing
+backing file
+</pre>
+</code></blockquote>
+If you want to destroy an existing COW file, then there is a -f switch
+to force the overwriting of the old COW file
+<blockquote><code>
+<pre>host% uml_mkcow -f existing COW file existing
+backing file
+</pre>
+</code></blockquote>
+<p></p>
+<p> 
+uml_mkcow is available from the 
+<a href=http://user-mode-linux.sourceforge.net/dl-sf.html#UML%20utilities>UML utilities</a> tar file in
+tools/moo.</p>
+<hr>
+<a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-8.html>Next</a>
+<a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO-6.html>Previous</a>
+<a href=http://user-mode-linux.sourceforge.net/old/UserModeLinux-HOWTO.html#toc7>Contents</a>
+<div class="youdao_tans_modal sf-hidden"></div>
