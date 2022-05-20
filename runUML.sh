@@ -13,7 +13,7 @@
 # History : Please check the end of file.
 ###############################################################################
 ws_path=$(pwd)
-uml_exe=$ws_path/UML-4.19.95
+uml_exe=$ws_path/UML-4.19.195
 uml_ip_address='10.1.0.10'
 host_ip_address='10.1.0.1'
 tap_iface_name='tapUML'
@@ -81,7 +81,7 @@ function main()
 			# 注意：！！！ 
 			# 1）此种方式进入uml后即可与主机进行通信（在root用户环境下可以ping通主机，主机也能ping通UML），
 			#    但uml无法访问公网，还需要借助网桥才行(https://blog.csdn.net/qq_34160841/article/details/104901127)
-			# 2）在UML中貌似无法通过Ctrl-C来退出程序，此时只得从主机侧新开一个终端kill掉uml(sudo killall UML-4.19.95)
+			# 2）在UML中貌似无法通过Ctrl-C来退出程序，此时只得从主机侧新开一个终端kill掉uml(sudo killall UML-4.19.195)
 			# 3）uml_init.sh 中已配置自动启动 sshd 但启动时间较长，此外启动sshd之后，退出UML时也将比较耗时，只得外部kill
 			# 4）从UML侧无法通过ssh连接主机，但从主机侧可以通过ssh连接UML（连接UML之后却可以再反向ssh主机，暂不知为何）
 			inet_config_args="eth1=tuntap,,,$host_ip_address"
