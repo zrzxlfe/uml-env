@@ -36,7 +36,7 @@ function mkrfs() {
     ROOTFS_IMG=${ROOTFS_DIR}.img
     ROOTFS_TMP=$1
     TARGET_CNT=`sudo du -sh -BM $ROOTFS_TMP | awk '{print $1}' | sed 's/M//'`
-    TARGET_CNT=$((TARGET_CNT+212))
+    TARGET_CNT=986
     # TARGET_CNT=$((TARGET_CNT+3399))
     echo "TARGET_CNT: $TARGET_CNT"
 

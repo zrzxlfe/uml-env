@@ -12,6 +12,11 @@ apt install rsyslog sudo ssh-askpass
 apt install iputils-ping net-tools wget
 apt install nano git vim bash-completion
 
+passwd root << EOF
+root
+root
+EOF
+
 echo "uml" > /etc/hostname
 echo "127.0.0.1 localhost uml" > /etc/hosts
 useradd uml -s '/bin/bash' -mr -G adm,sudo
@@ -33,3 +38,48 @@ apt autoremove --purge
 ln -sf /usr/bin/busybox-1.33.1 /bin/sh
 ln -sf /usr/bin/busybox-1.33.1 /sbin/init
 ln -sf /usr/bin/busybox-1.33.1 /usr/sbin/halt
+
+
+# Version 1.1 (2021-12-01)
+#-------------------------------------------------------------------------------------------------------------
+# 1. 修正该rootfs的终端无法输入中文及中文显示乱码
+# https://blog.csdn.net/Time888/article/details/80323749
+# https://blog.csdn.net/Running_free/article/details/103886283
+# http://shouce.jb51.net/linux-from-scratch-6.1.1/chapter07/inputrc.html
+cat > /home/uml/.inputrc << EOF
+# 允许 8bit 输入
+set meta-flag on
+set input-meta on
+# 禁止第8位(最高位)剔除
+set convert-meta off
+# 允许显示第8位(最高位)
+set output-meta on
+EOF
+cp /home/uml/.inputrc /root/
+cat >> /etc/default/locale << EOF
+LANG="en_US.UTF-8"
+LANGUAGE="en_US:en"
+EOF
+
+# 以下配置不需要，在此仅供参考
+apt install locales language-pack-zh-hans
+echo "en_US.UTF-8 UTF-8" > /var/lib/locales/supported.d/en
+locale-gen
+cat >> /etc/environment << EOF
+LANG="en_US.UTF-8"
+LANGUAGE="en_US:en"
+EOF
+
+# 2. 打开 root 用户的tap补全支持
+# 编辑 /root/.bashrc 将如下注释放开即可
+#if [ -f /etc/bash_completion ] && ! shopt -oq posix; then
+#    . /etc/bash_completion
+#fi
+
+# 3. 安装 ssh 以支持远程访问
+apt install openssh-server
+# 4. 打开 ssh 支持远程以 root 登录(https://blog.csdn.net/lcr_happy/article/details/88217936)
+sed -i 's/^#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
+
+# 如果出现git无法commit, 可通过如下方式临时解决
+# git config --local user.email "tom@git.com"; git config --local user.name "tom"
